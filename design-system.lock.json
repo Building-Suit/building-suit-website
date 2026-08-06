@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-08-06",
+  "source": {
+    "sourceRepository": "tareq-abdelwhap/building-suit",
+    "sourcePath": ".docs/building-suit-brand-guidelines/07-design-tokens/design-tokens.json",
+    "sourceRef": "origin/codex/remove-prototype",
+    "sourceCommitSha": "d746c578539017caa046a6a34a7f1f949df4356a"
+  },
+  "hashes": {
+    "design-system/design-tokens.source.json": "sha256:8705f5e80f82613f403b964cbb08009d7848ff803cf1f2ef0cd5985bfccc7f0f",
+    "app/assets/css/building-suit-tokens.css": "sha256:e8caee20ffa13e951fbc998c10c4985282646361ba6cc495e652e53034253c71",
+    "public/brand/building-suit-logo-dark.png": "sha256:bd38b426f1964ad031a232a8b7f89095223dea5760f1a31234a38f17d2cc472f",
+    "public/brand/building-suit-logo-light.png": "sha256:f6c0a0aa2bfad96415f9f9e024ac05a536adde8e1d8f4897890d35392a3fb510"
+  },
+  "logoGitBlobSha": {
+    "building-suit-logo-dark.png": "be54d13ab1a43f756530186fbb6ee14cf4bde7bb",
+    "building-suit-logo-light.png": "b11a12bff243beccdf44fc4387f4f2d9265d8755"
+  },
+  "packages": {
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource/ibm-plex-sans-arabic": "^5.3.0",
+    "@hugeicons/vue": "^4.2.3",
+    "@hugeicons/core-free-icons": "^1.0.7",
+    "motion-v": "^2.3.0"
+  }
+}

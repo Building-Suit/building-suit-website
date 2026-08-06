@@ -1,0 +1,98 @@
+/* Base document + typography defaults. Locale-aware font family and Arabic line-height
+   multiplier (canonical 1.12, see design-tokens.json typography.locale). */
+
+:root {
+  --bs-lh-scale: var(--bs-typography-locale-latin-line-height-multiplier);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[lang="ar"] {
+  --bs-lh-scale: var(--bs-typography-locale-arabic-line-height-multiplier);
+}
+
+body {
+  background: var(--bs-background);
+  color: var(--bs-text);
+  font-family: var(--bs-typography-font-family-latin);
+  font-size: var(--bs-type-body-l-size);
+  line-height: calc(var(--bs-type-body-l-lh) * var(--bs-lh-scale));
+  font-weight: var(--bs-typography-font-weight-regular);
+  transition: background-color 0.18s var(--bs-easing-standard), color 0.18s var(--bs-easing-standard);
+}
+
+html[lang="ar"] body {
+  font-family: var(--bs-typography-font-family-arabic);
+}
+
+h1,
+h2,
+h3 {
+  font-weight: var(--bs-typography-font-weight-bold);
+  letter-spacing: 0;
+}
+
+/* Arabic never inherits Latin letter-spacing or uppercase transforms. */
+html[lang="ar"] * {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+::selection {
+  background: var(--bs-selected-overlay);
+}
+
+a,
+button,
+[tabindex] {
+  outline: none;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: var(--bs-size-focus-ring) solid var(--bs-focus-ring);
+  outline-offset: var(--bs-size-focus-offset);
+  border-radius: var(--bs-radius-chip);
+}
+
+.bs-skip-link {
+  position: fixed;
+  inset-inline-start: var(--bs-spacing-4);
+  top: var(--bs-spacing-4);
+  z-index: 100;
+  transform: translateY(-150%);
+  background: var(--bs-surface);
+  color: var(--bs-text);
+  padding: var(--bs-spacing-3) var(--bs-spacing-4);
+  border-radius: var(--bs-radius-button);
+  box-shadow: var(--bs-elevation-2);
+  font-weight: var(--bs-typography-font-weight-semibold);
+  transition: transform 0.18s var(--bs-easing-standard);
+}
+
+.bs-skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+.bs-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
+}

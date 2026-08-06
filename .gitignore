@@ -1,0 +1,16 @@
+node_modules/
+.nuxt/
+.output/
+dist/
+.env
+.env.*
+!.env.example
+
+# Playwright artifacts — noisy/large; keep only the curated visual-evidence screenshots
+test-results/html-report/
+test-results/artifacts/
+playwright-report/
+blob-report/
+
+*.log
+.DS_Store
