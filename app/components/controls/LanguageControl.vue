@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// Not currently rendered on the Coming Soon page (no visible chrome — see
+// FutureActionsSlot.vue) but preserved as working infrastructure for future pages.
 withDefaults(defineProps<{ onBrandSurface?: boolean }>(), { onBrandSurface: false });
 
 const { locale, setLocale } = useLandingLocale();

@@ -1,9 +1,9 @@
-// Central motion contract for the Coming Soon page.
+// Central motion contract for the single-viewport Coming Soon experience.
 //
-// Values are the "complete Motion Spec" scale from .docs/03B.BUILDING_SUIT_MOTION_SPEC.md
-// §3.1–3.2 (checkpoint-07), not the shorter DTCG `motion.*` component tokens — see
-// docs/building-suit-source-audit.md, contradiction #2, for why that ref wins for
-// page-level structural motion.
+// Timing/easing/distance/stagger values are the "complete Motion Spec" scale from
+// .docs/03B.BUILDING_SUIT_MOTION_SPEC.md §3.1-3.2 (business-strengthening-checkpoint-07)
+// — see docs/building-suit-source-audit.md for why that ref governs page-level
+// structural motion over the shorter DTCG `motion.*` component tokens.
 
 export const duration = {
   instant: 0,
@@ -23,86 +23,78 @@ export const easing = {
 
 export const distance = {
   microPx: 6,
-  localPx: 16,
+  localPx: 14,
 } as const;
 
 export const stagger = {
-  stepSeconds: 0.02,
-  maxItems: 4, // 4 * 20ms = 80ms accumulated cap (Motion Spec §3.4)
+  stepSeconds: 0.02, // 20ms per item, Motion Spec §3.4 (16-24ms band)
+  maxItems: 4, // 4 * 20ms = 80ms accumulated cap
 } as const;
 
-// Hero entrance — Motion Spec §5.3 viewport-reveal distances, `standard + enter`.
-export const heroStatus = {
-  initial: { opacity: 0, y: distance.microPx },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: duration.standard, ease: easing.enter, delay: 0 },
-};
-
-export const heroHeadline = {
-  initial: { opacity: 0, y: distance.localPx },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: duration.standard, ease: easing.enter, delay: stagger.stepSeconds },
-};
-
-export const heroSupporting = {
-  initial: { opacity: 0, y: distance.microPx + 4 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: duration.standard, ease: easing.enter, delay: stagger.stepSeconds * 2 },
-};
-
-export const heroCta = {
-  initial: { opacity: 0, y: distance.microPx },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: duration.standard, ease: easing.enter, delay: stagger.stepSeconds * 3 },
-};
-
-export const heroVisual = {
-  initial: { opacity: 0, y: distance.microPx },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: duration.emphasized, ease: easing.enter, delay: stagger.stepSeconds * 2 },
-};
-
-export function trustDescriptorDelay(index: number) {
-  return stagger.stepSeconds * 4 + Math.min(index, stagger.maxItems) * stagger.stepSeconds;
+export interface RevealStep {
+  initial: false | { opacity: number; y?: number };
+  animate: { opacity: number; y?: number };
+  transition: { duration: number; ease: readonly number[]; delay: number };
 }
 
-// Viewport reveal for newly-encountered content (pillars, closing) — Motion Spec §5.3:
-// trigger once, start no farther than 8–16px from rest, `standard + enter`.
-//
-// Deliberately built on useInView() + a reactive `:animate` prop rather than the Motion
-// component's own `:while-in-view`. `initial` is a mount-time-only prop in this library
-// (matching Framer Motion's contract), so on an SSR page the reduced-motion state isn't
-// known yet at first client mount and a later prop swap to bypass `whileInView` never
-// takes effect — the intersection gate had already locked in. `animate`, unlike
-// `initial`, IS reactive after mount, so branching the reveal that way is what actually
-// satisfies Motion Spec §8: "Viewport reveal -> Content appears immediately" under
-// reduced motion, with no scroll required.
-export function revealItemMotion(index: number, shouldReveal: boolean) {
-  const rest = { opacity: 0, y: distance.localPx };
+// Every entrance element is built through this single function so reduced-motion
+// correctness lives in one place. `initial: false` (skip animating from a from-state,
+// render directly at `animate`) is resolved here rather than left to MotionConfig's own
+// reducedMotion propagation timing — a prior page on this same site shipped a real bug
+// where a Motion component's mount-time `initial` gate didn't retroactively respond to
+// reduced-motion being resolved a tick after SSR hydration. Computing the branch
+// ourselves, synchronously, from a directly-read useReducedMotion() ref removes that
+// race entirely: there is nothing left for a later prop change to fail to undo.
+export function revealStep(order: number, opts: { reducedMotion: boolean; travel?: number }): RevealStep {
+  const travel = opts.travel ?? distance.localPx;
+  const rest = { opacity: 0, y: travel };
+  const settled = { opacity: 1, y: 0 };
+  if (opts.reducedMotion) {
+    return { initial: false, animate: settled, transition: { duration: duration.instant, ease: easing.standard, delay: 0 } };
+  }
   return {
     initial: rest,
-    animate: shouldReveal ? { opacity: 1, y: 0 } : rest,
+    animate: settled,
     transition: {
       duration: duration.standard,
       ease: easing.enter,
-      delay: Math.min(index, stagger.maxItems) * stagger.stepSeconds,
+      delay: Math.min(order, stagger.maxItems) * stagger.stepSeconds,
     },
   };
 }
 
-// Header surface transition (transparent hero -> solid scrolled surface) — `quick`, no layout reflow.
-export const headerSurfaceTransition = {
-  duration: duration.quick,
-  ease: easing.standard,
-};
+// Phase 1 — environment: the background field resolves with a soft opacity fade only,
+// no travel (it has no direction to travel from). standard/emphasized per §17 Phase 1.
+export function environmentReveal(reducedMotion: boolean) {
+  if (reducedMotion) {
+    return { initial: false, animate: { opacity: 1 }, transition: { duration: duration.instant, ease: easing.standard, delay: 0 } };
+  }
+  return {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    transition: { duration: duration.emphasized, ease: easing.enter, delay: 0 },
+  };
+}
 
-// Hover / press — Motion Spec §7.1.
+// Phase 2 — logo: 8-16px vertical settle + opacity, no scale, no bounce, no overshoot.
+export function logoReveal(reducedMotion: boolean) {
+  return revealStep(0, { reducedMotion, travel: distance.localPx });
+}
+
+// Phase 3 — brand text stack (wordmark, status, promise): small, fast stagger. Order
+// starts at 1 so the logo (order 0) always settles at least one step ahead.
+export function textReveal(index: number, reducedMotion: boolean) {
+  return revealStep(index + 1, { reducedMotion, travel: distance.microPx + 2 });
+}
+
+// Hover / press — reserved for whatever gets added to FutureActionsSlot later.
+// Motion Spec §7.1.
 export const hoverScale = 1.015;
 export const pressScale = 0.98;
-
 export const hoverTransition = { duration: duration.micro, ease: easing.standard };
-export const pressTransition = { duration: duration.micro, ease: easing.standard };
 
-// Decorative parallax on the architectural signal — Motion Spec §5.4: 2–6% of viewport, never on
-// text/controls, disabled under reduced motion (enforced by the component, not here).
-export const parallaxRangePx = 18;
+// Section 18 — optional pointer parallax on desktop pointer-fine devices only. Travel
+// is deliberately tiny (3-10px) and never applied to the logo, text, or the future
+// actions slot. Smoothed with a spring so it reads as "gently responds," not tracked 1:1.
+export const parallaxMaxPx = 8;
+export const parallaxSpring = { stiffness: 40, damping: 18, mass: 0.6 };

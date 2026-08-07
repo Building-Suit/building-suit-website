@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-// Captures the fixed-viewport visual evidence matrix required for the Coming Soon page
-// QA pass (see docs/visual-qa.md): locale x theme x device, plus reduced-motion mobile
-// and desktop. Requires the app to already be running at BASE_URL (defaults to the
-// Playwright preview port). Output: test-results/visual-evidence/*.png.
+// Captures the fixed-viewport visual evidence set required for the single-viewport
+// Coming Soon experience (task brief §33): mobile, desktop, and reduced-motion, plus an
+// Arabic/RTL pass at one mobile and one desktop size. Requires the app to already be
+// running at BASE_URL (defaults to the Playwright preview port).
+// Output: test-results/visual-evidence/*.png.
 
 import { chromium } from "@playwright/test";
 import { mkdirSync } from "node:fs";
@@ -15,21 +16,12 @@ mkdirSync(OUT_DIR, { recursive: true });
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3412";
 
-const VIEWPORTS = {
-  mobile: { width: 390, height: 844 },
-  desktop: { width: 1440, height: 900 },
-};
-
-async function capture(browser, name, { viewport, lang, theme, reducedMotion }) {
-  const cookies = [];
-  if (lang) cookies.push({ name: "bs-lang", value: lang, domain: "localhost", path: "/" });
-  if (theme) cookies.push({ name: "bs-theme", value: theme, domain: "localhost", path: "/" });
-
+async function capture(browser, name, { viewport, lang, reducedMotion }) {
   const context = await browser.newContext({
     viewport,
     reducedMotion: reducedMotion ? "reduce" : "no-preference",
   });
-  if (cookies.length) await context.addCookies(cookies);
+  if (lang) await context.addCookies([{ name: "bs-lang", value: lang, domain: "localhost", path: "/" }]);
 
   const page = await context.newPage();
   const errors = [];
@@ -39,26 +31,21 @@ async function capture(browser, name, { viewport, lang, theme, reducedMotion }) 
   });
 
   await page.goto(BASE_URL, { waitUntil: "networkidle" });
-  await page.waitForTimeout(reducedMotion ? 200 : 700); // let entrance motion settle for non-reduced captures
+  await page.waitForTimeout(reducedMotion ? 200 : 700);
 
-  // Real incremental scroll (not a CDP full-page stitch) so IntersectionObserver-driven
-  // viewport-reveal sections actually populate before the full-page screenshot is taken.
-  await page.evaluate(async () => {
-    const step = 400;
-    const delay = 90;
-    while (document.scrollingElement.scrollTop + window.innerHeight < document.body.scrollHeight) {
-      document.scrollingElement.scrollBy(0, step);
-      await new Promise((r) => setTimeout(r, delay));
-    }
-    document.scrollingElement.scrollTo(0, 0);
-  });
-  await page.waitForTimeout(300);
+  const metrics = await page.evaluate(() => ({
+    scrollHeight: document.documentElement.scrollHeight,
+    clientHeight: document.documentElement.clientHeight,
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+  const overflow = metrics.scrollHeight > metrics.clientHeight + 2 || metrics.scrollWidth > metrics.clientWidth + 2;
 
-  await page.screenshot({ path: join(OUT_DIR, `${name}.png`), fullPage: true });
+  await page.screenshot({ path: join(OUT_DIR, `${name}.png`) });
   await context.close();
 
-  if (errors.length) {
-    console.error(`✗ ${name}: console/page errors`, errors);
+  if (errors.length || overflow) {
+    console.error(`✗ ${name}: errors=${JSON.stringify(errors)} overflow=${overflow} metrics=${JSON.stringify(metrics)}`);
     process.exitCode = 1;
   } else {
     console.log(`✓ ${name}`);
@@ -68,28 +55,23 @@ async function capture(browser, name, { viewport, lang, theme, reducedMotion }) 
 async function main() {
   const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
 
-  await capture(browser, "en-light-mobile", { viewport: VIEWPORTS.mobile, lang: "en", theme: "light" });
-  await capture(browser, "en-dark-mobile", { viewport: VIEWPORTS.mobile, lang: "en", theme: "dark" });
-  await capture(browser, "ar-light-mobile", { viewport: VIEWPORTS.mobile, lang: "ar", theme: "light" });
-  await capture(browser, "ar-dark-mobile", { viewport: VIEWPORTS.mobile, lang: "ar", theme: "dark" });
+  // Mobile (task §33)
+  await capture(browser, "mobile-360x640", { viewport: { width: 360, height: 640 } });
+  await capture(browser, "mobile-390x844", { viewport: { width: 390, height: 844 } });
+  await capture(browser, "mobile-412x915", { viewport: { width: 412, height: 915 } });
 
-  await capture(browser, "en-light-desktop", { viewport: VIEWPORTS.desktop, lang: "en", theme: "light" });
-  await capture(browser, "en-dark-desktop", { viewport: VIEWPORTS.desktop, lang: "en", theme: "dark" });
-  await capture(browser, "ar-light-desktop", { viewport: VIEWPORTS.desktop, lang: "ar", theme: "light" });
-  await capture(browser, "ar-dark-desktop", { viewport: VIEWPORTS.desktop, lang: "ar", theme: "dark" });
+  // Desktop (task §33)
+  await capture(browser, "desktop-1366x768", { viewport: { width: 1366, height: 768 } });
+  await capture(browser, "desktop-1440x900", { viewport: { width: 1440, height: 900 } });
+  await capture(browser, "desktop-1920x1080", { viewport: { width: 1920, height: 1080 } });
 
-  await capture(browser, "reduced-motion-mobile", {
-    viewport: VIEWPORTS.mobile,
-    lang: "en",
-    theme: "light",
-    reducedMotion: true,
-  });
-  await capture(browser, "reduced-motion-desktop", {
-    viewport: VIEWPORTS.desktop,
-    lang: "en",
-    theme: "light",
-    reducedMotion: true,
-  });
+  // Reduced motion (task §33)
+  await capture(browser, "reduced-motion-390x844", { viewport: { width: 390, height: 844 }, reducedMotion: true });
+  await capture(browser, "reduced-motion-1440x900", { viewport: { width: 1440, height: 900 }, reducedMotion: true });
+
+  // Arabic/RTL — not explicitly required by §33 but verified independently per §24/§32.
+  await capture(browser, "ar-mobile-390x844", { viewport: { width: 390, height: 844 }, lang: "ar" });
+  await capture(browser, "ar-desktop-1440x900", { viewport: { width: 1440, height: 900 }, lang: "ar" });
 
   await browser.close();
 }

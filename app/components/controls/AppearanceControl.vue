@@ -1,13 +1,23 @@
 <script setup lang="ts">
+// Not currently rendered on the Coming Soon page (no visible chrome — see
+// FutureActionsSlot.vue) but preserved as working infrastructure for future pages.
+// Self-contained labels rather than pulling from landingCopy.ts, which is scoped to the
+// Coming Soon page's own minimal content.
 withDefaults(defineProps<{ onBrandSurface?: boolean }>(), { onBrandSurface: false });
 
 const { theme, setTheme } = useAppearance();
-const { copy } = useLandingLocale();
+const { locale } = useLandingLocale();
+
+const labels = computed(() =>
+  locale.value === "ar"
+    ? { group: "المظهر", light: "فاتح", dark: "داكن", system: "النظام" }
+    : { group: "Appearance", light: "Light", dark: "Dark", system: "System" }
+);
 
 const options = computed(() => [
-  { value: "light" as const, icon: icons.themeLight, label: copy.value.appearanceOptions.light },
-  { value: "dark" as const, icon: icons.themeDark, label: copy.value.appearanceOptions.dark },
-  { value: "system" as const, icon: icons.themeSystem, label: copy.value.appearanceOptions.system },
+  { value: "light" as const, icon: icons.themeLight, label: labels.value.light },
+  { value: "dark" as const, icon: icons.themeDark, label: labels.value.dark },
+  { value: "system" as const, icon: icons.themeSystem, label: labels.value.system },
 ]);
 </script>
 
@@ -16,7 +26,7 @@ const options = computed(() => [
     class="bs-appearance-control"
     :class="{ 'bs-appearance-control--on-brand': onBrandSurface }"
     role="group"
-    :aria-label="copy.appearanceLabel"
+    :aria-label="labels.group"
   >
     <button
       v-for="option in options"

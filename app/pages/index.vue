@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const { copy, locale } = useLandingLocale();
-const { resolvedTheme } = useAppearance();
 
 const requestUrl = useRequestURL();
 const canonicalUrl = computed(() => `${requestUrl.protocol}//${requestUrl.host}/`);
@@ -36,20 +35,10 @@ useHead({
   link: [{ rel: "canonical", href: () => canonicalUrl.value }],
   script: [{ type: "application/ld+json", innerHTML: () => structuredData.value }],
 });
-
-// Keep the manual meta theme-color in app.vue authoritative; this page adds no
-// conflicting duplicate.
-void resolvedTheme;
 </script>
 
 <template>
-  <div>
-    <LandingHeader />
-    <main id="main-content">
-      <LandingComingSoonHero />
-      <LandingValuePillars />
-      <LandingComingSoonClosing />
-    </main>
-    <LandingFooter />
-  </div>
+  <main id="main-content" :aria-label="copy.mainLabel">
+    <LandingComingSoonExperience />
+  </main>
 </template>

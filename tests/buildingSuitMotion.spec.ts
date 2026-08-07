@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  distance,
   duration,
   easing,
-  heroCta,
-  heroHeadline,
-  heroStatus,
-  revealItemMotion,
+  environmentReveal,
+  logoReveal,
+  parallaxMaxPx,
+  revealStep,
   stagger,
-  trustDescriptorDelay,
+  textReveal,
 } from "../app/utils/buildingSuitMotion";
 
 describe("buildingSuitMotion", () => {
@@ -29,51 +30,55 @@ describe("buildingSuitMotion", () => {
     expect(easing.linear).toEqual([0, 0, 1, 1]);
   });
 
-  it("hero entrance uses standard/enter with local-travel distances (8-24px)", () => {
-    expect(heroHeadline.initial.y).toBeGreaterThanOrEqual(8);
-    expect(heroHeadline.initial.y).toBeLessThanOrEqual(24);
-    expect(heroHeadline.transition.duration).toBe(duration.standard);
-    expect(heroHeadline.transition.ease).toEqual(easing.enter);
+  it("environment reveal (Phase 1) is an opacity-only fade with no travel", () => {
+    const step = environmentReveal(false);
+    expect(step.initial).toEqual({ opacity: 0 });
+    expect(step.animate).toEqual({ opacity: 1 });
+    expect(step.transition.duration).toBeLessThanOrEqual(duration.emphasized);
   });
 
-  it("hero status uses micro-travel distance (4-8px)", () => {
-    expect(heroStatus.initial.y).toBeGreaterThanOrEqual(4);
-    expect(heroStatus.initial.y).toBeLessThanOrEqual(8);
+  it("logo reveal (Phase 2) settles from 8-16px with no scale field present", () => {
+    const step = logoReveal(false);
+    expect(step.initial).not.toBe(false);
+    if (step.initial === false) throw new Error("unreachable");
+    expect(step.initial.y).toBeGreaterThanOrEqual(8);
+    expect(step.initial.y).toBeLessThanOrEqual(16);
+    expect(step.animate).toEqual({ opacity: 1, y: 0 });
+    expect(step.transition.ease).toEqual(easing.enter);
+    expect("scale" in step.animate).toBe(false);
   });
 
-  it("CTA entrance never exceeds the emphasized duration ceiling used across the hero", () => {
-    expect(heroCta.transition.duration).toBeLessThanOrEqual(duration.emphasized);
-  });
-
-  it("trust descriptor stagger stays within the 80ms accumulated cap (Motion Spec §3.4)", () => {
-    const delays = [0, 1, 2, 3, 4, 5].map(trustDescriptorDelay);
+  it("text reveal (Phase 3) stays within the 80ms accumulated stagger cap", () => {
+    const delays = [0, 1, 2, 3, 4, 5].map((i) => textReveal(i, false).transition.delay);
     const spread = delays[delays.length - 1] - delays[0];
     expect(spread).toBeLessThanOrEqual(stagger.maxItems * stagger.stepSeconds + 0.001);
   });
 
-  it("viewport reveal starts within 8-16px of rest and only animates once shouldReveal is true (Motion Spec §5.3)", () => {
-    const notYet = revealItemMotion(0, false);
-    expect(notYet.initial.y).toBeGreaterThanOrEqual(8);
-    expect(notYet.initial.y).toBeLessThanOrEqual(16);
-    expect(notYet.animate.opacity).toBe(0);
-
-    const revealed = revealItemMotion(0, true);
-    expect(revealed.animate).toEqual({ opacity: 1, y: 0 });
-  });
-
-  it("reveal appears immediately under reduced motion — shouldReveal bypasses the intersection gate", () => {
-    // The reduced-motion contract (Motion Spec §8) is satisfied by callers passing
-    // shouldReveal = isInView || reducedMotion, not by this function itself; verify the
-    // bypass path renders the settled state regardless of index/stagger.
-    const step = revealItemMotion(2, true);
-    expect(step.animate).toEqual({ opacity: 1, y: 0 });
-  });
-
-  it("viewport reveal stagger step delay increases monotonically and caps at stagger.maxItems", () => {
-    const a = revealItemMotion(0, true).transition.delay;
-    const b = revealItemMotion(1, true).transition.delay;
-    const capped = revealItemMotion(99, true).transition.delay;
+  it("text reveal delay increases monotonically and caps at stagger.maxItems", () => {
+    const a = textReveal(0, false).transition.delay;
+    const b = textReveal(1, false).transition.delay;
+    const capped = textReveal(99, false).transition.delay;
     expect(b).toBeGreaterThan(a);
-    expect(capped).toBe(revealItemMotion(stagger.maxItems, true).transition.delay);
+    expect(capped).toBe(textReveal(stagger.maxItems - 1, false).transition.delay);
+  });
+
+  it("every phase renders immediately (initial: false, instant transition) under reduced motion", () => {
+    for (const step of [environmentReveal(true), logoReveal(true), textReveal(0, true), textReveal(3, true)]) {
+      expect(step.initial).toBe(false);
+      expect(step.transition.duration).toBe(duration.instant);
+      expect(step.animate.opacity).toBe(1);
+    }
+  });
+
+  it("revealStep never produces a non-zero rest y under reduced motion (nothing left mid-travel)", () => {
+    const step = revealStep(2, { reducedMotion: true, travel: distance.localPx });
+    expect(step.animate.y).toBe(0);
+  });
+
+  it("parallax travel stays within the documented low-amplitude budget", () => {
+    // Motion Spec §5.4 allows roughly 2-6% of viewport for decorative parallax; this is a
+    // fixed small px budget deliberately well under that for a "barely perceptible" feel.
+    expect(parallaxMaxPx).toBeGreaterThan(0);
+    expect(parallaxMaxPx).toBeLessThanOrEqual(10);
   });
 });

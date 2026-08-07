@@ -2,17 +2,13 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 test.describe("automated accessibility (axe-core, WCAG 2 A/AA)", () => {
-  for (const { name, lang, theme } of [
-    { name: "en-light", lang: "en", theme: "light" },
-    { name: "en-dark", lang: "en", theme: "dark" },
-    { name: "ar-light", lang: "ar", theme: "light" },
-    { name: "ar-dark", lang: "ar", theme: "dark" },
-  ]) {
-    test(`no violations — ${name}`, async ({ page, context }) => {
-      await context.addCookies([
-        { name: "bs-lang", value: lang, url: "http://localhost:3412" },
-        { name: "bs-theme", value: theme, url: "http://localhost:3412" },
-      ]);
+  // Theme (light/dark) isn't varied here: the Coming Soon experience always renders the
+  // fixed dark architectural treatment via --bs-color-role-dark-* tokens directly (see
+  // ComingSoonExperience.vue), so a light/dark cookie produces byte-identical output for
+  // this page. Locale is varied since RTL mirroring is real DOM/CSS change.
+  for (const lang of ["en", "ar"]) {
+    test(`no violations — ${lang}`, async ({ page, context }) => {
+      await context.addCookies([{ name: "bs-lang", value: lang, url: "http://localhost:3412" }]);
       await page.goto("/");
       const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
       expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
@@ -27,8 +23,9 @@ test.describe("server rendering", () => {
     const html = await response.text();
     expect(html).toContain('lang="en"');
     expect(html).toContain('dir="ltr"');
-    expect(html).toContain("A clearer way to run your building is coming.");
+    expect(html).toContain("Building Suit");
     expect(html).toContain("Coming Soon");
+    expect(html).toContain("Clarity you can trust.");
   });
 
   test("Arabic renders server-side via the bs-lang cookie", async ({ request }) => {
@@ -38,89 +35,39 @@ test.describe("server rendering", () => {
     expect(html).toContain('lang="ar"');
     expect(html).toContain('dir="rtl"');
     expect(html).toContain("قريبًا");
+    expect(html).toContain("وضوح تثق به.");
   });
 
-  test("no dead #-only links and CTA points to a real in-page section", async ({ request }) => {
-    const html = await (await request.get("/")).text();
-    expect(html).not.toContain('href="#"');
-    expect(html).toContain('href="#value-pillars"');
-    expect(html).toContain('href="#main-content"');
-  });
-});
-
-test.describe("language and appearance switching", () => {
-  test("dir changes correctly and the choice persists across reload", async ({ page }) => {
+  test("no dead #-only links; the only link on the page is the skip link", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
-
-    await page.getByRole("button", { name: /Switch to Arabic/ }).click();
-    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-    await expect(page.locator("html")).toHaveAttribute("lang", "ar");
-
-    await page.reload();
-    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    expect(await page.locator('a[href="#"]').count()).toBe(0);
+    const links = page.locator("a");
+    await expect(links).toHaveCount(1);
+    await expect(links.first()).toHaveAttribute("href", "#main-content");
   });
 
-  test("light, dark, and system theme all persist across reload", async ({ page }) => {
+  test("the future actions slot exists, is empty, and carries no placeholder copy", async ({ page }) => {
     await page.goto("/");
-
-    await page.getByRole("button", { name: "Dark", exact: true }).click();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-    await page.reload();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-
-    await page.getByRole("button", { name: "Light", exact: true }).click();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-    await page.reload();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-
-    await page.getByRole("button", { name: "System", exact: true }).click();
-    await page.reload();
-    // "system" is resolved by the blocking pre-paint script; just confirm it settles to a
-    // valid value rather than being left unset.
-    await expect(page.locator("html")).toHaveAttribute("data-theme", /light|dark/);
-  });
-});
-
-test.describe("primary action and navigation", () => {
-  test("the CTA scrolls to the value pillars section", async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("link", { name: "See what’s coming" }).click();
-    await expect(page).toHaveURL(/#value-pillars$/);
-    await expect(page.locator("#value-pillars")).toBeInViewport();
+    const slot = page.locator('[data-testid="future-actions-slot"]');
+    await expect(slot).toBeAttached();
+    expect((await slot.textContent())?.trim()).toBe("");
   });
 });
 
 test.describe("keyboard and focus", () => {
-  test("keyboard navigation reaches the skip link, controls, and CTA with visible focus", async ({ page }) => {
+  test("the skip link is the only focusable element and receives visible focus", async ({ page }) => {
     await page.goto("/");
     await page.keyboard.press("Tab");
     await expect(page.locator(".bs-skip-link")).toBeFocused();
+    const outline = await page.evaluate(() => getComputedStyle(document.activeElement as Element).outlineStyle);
+    expect(outline).not.toBe("none");
 
-    const focusable = page.locator(
-      "a, button, [tabindex]:not([tabindex='-1'])"
-    );
-    const count = await focusable.count();
-    expect(count).toBeGreaterThan(5);
-
-    // Tab through the remaining controls (the skip link already consumed one Tab above)
-    // and confirm each receives real DOM focus with a non-"none" outline — the actual
-    // visible-focus requirement, checked without relying on :focus-visible's
-    // browser-specific keyboard-origin heuristics under CDP. Tabbing past the last
-    // control wraps to <body>, which just ends the walk instead of failing it.
-    let visited = 0;
-    for (let i = 0; i < count; i++) {
-      await page.keyboard.press("Tab");
-      const outline = await page.evaluate(() => {
-        const el = document.activeElement;
-        if (!el || el === document.body) return "WRAPPED";
-        return getComputedStyle(el).outlineStyle;
-      });
-      if (outline === "WRAPPED") break;
-      expect(outline).not.toBe("none");
-      visited++;
-    }
-    expect(visited).toBeGreaterThan(4);
+    // Nothing else on the page is focusable — tabbing again wraps out (to <body> in this
+    // headless harness, to browser chrome in a real browser). Either way, no second
+    // in-page element should receive focus.
+    await page.keyboard.press("Tab");
+    const secondFocusTag = await page.evaluate(() => document.activeElement?.tagName);
+    expect(secondFocusTag === "BODY" || secondFocusTag === undefined).toBe(true);
   });
 
   test("no automatic focus movement on page load", async ({ page }) => {
@@ -130,41 +77,31 @@ test.describe("keyboard and focus", () => {
   });
 });
 
-test.describe("header surface transition", () => {
-  test("header logo swaps between transparent-hero and scrolled-solid state", async ({ page }) => {
-    await page.goto("/");
-    const darkLogo = page.locator(".bs-header__logo").first();
-    const lightLogo = page.locator(".bs-header__logo").nth(1);
-
-    await expect(lightLogo).toHaveClass(/is-visible/);
-    await expect(darkLogo).not.toHaveClass(/is-visible/);
-
-    await page.mouse.wheel(0, 800);
-    await page.waitForTimeout(300);
-    await expect(page.locator(".bs-header")).toHaveClass(/bs-header--scrolled/);
-  });
-});
-
 test.describe("reduced motion", () => {
-  test("hero content is immediately visible under prefers-reduced-motion: reduce", async ({ page }) => {
+  test("every entrance element is immediately visible under prefers-reduced-motion: reduce", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
-    await expect(page.locator(".bs-hero__headline")).toBeVisible();
-    await expect(page.locator(".bs-hero__headline")).toHaveCSS("opacity", "1");
+    for (const selector of [".bs-atmosphere", ".bs-brand__logo-frame", ".bs-brand__wordmark", ".bs-brand__status", ".bs-brand__promise"]) {
+      await expect(page.locator(selector), `${selector} should be visible without motion`).toHaveCSS("opacity", "1");
+    }
   });
 
-  test("below-the-fold viewport-reveal content (pillars, closing) is visible without scrolling", async ({ page }) => {
+  test("pointer parallax does not register a listener under reduced motion", async ({ page }) => {
+    // Indirect check: with reduced motion active, moving the pointer must not move the
+    // decorative planes at all (transform stays at rest).
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
-    // Deliberately not scrolling — Motion Spec §8 requires viewport reveal to skip the
-    // intersection wait entirely under reduced motion, not just skip the animation.
-    await expect(page.locator(".bs-pillar").first()).toHaveCSS("opacity", "1");
-    await expect(page.locator(".bs-closing__headline")).toHaveCSS("opacity", "1");
+    const before = await page.locator(".bs-atmosphere__glow").evaluate((el) => getComputedStyle(el).transform);
+    await page.mouse.move(50, 50);
+    await page.mouse.move(800, 20);
+    await page.waitForTimeout(200);
+    const after = await page.locator(".bs-atmosphere__glow").evaluate((el) => getComputedStyle(el).transform);
+    expect(after).toBe(before);
   });
 });
 
-test.describe("console and accessibility landmarks", () => {
-  test("no console or page errors during load and interaction", async ({ page }) => {
+test.describe("console and landmarks", () => {
+  test("no console or page errors during load, reload, and locale switch via cookie", async ({ page, context }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(String(err)));
     page.on("console", (msg) => {
@@ -172,17 +109,24 @@ test.describe("console and accessibility landmarks", () => {
     });
 
     await page.goto("/");
-    await page.getByRole("button", { name: "Dark", exact: true }).click();
-    await page.getByRole("button", { name: /Switch to Arabic/ }).click();
+    await context.addCookies([{ name: "bs-lang", value: "ar", url: "http://localhost:3412" }]);
+    await page.reload();
 
     expect(errors).toEqual([]);
   });
 
-  test("landmarks and single h1 are present", async ({ page }) => {
+  test("exactly one h1, one main landmark, no header/footer chrome", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("header")).toHaveCount(1);
-    await expect(page.locator("main#main-content")).toHaveCount(1);
-    await expect(page.locator("footer")).toHaveCount(1);
     await expect(page.locator("h1")).toHaveCount(1);
+    await expect(page.locator("h1")).toHaveText("Coming Soon");
+    await expect(page.locator("main#main-content")).toHaveCount(1);
+    await expect(page.locator("header")).toHaveCount(0);
+    await expect(page.locator("footer")).toHaveCount(0);
+    await expect(page.locator("nav")).toHaveCount(0);
+  });
+
+  test("decorative atmosphere is hidden from the accessibility tree", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator(".bs-atmosphere")).toHaveAttribute("aria-hidden", "true");
   });
 });

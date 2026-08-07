@@ -1,6 +1,6 @@
 # Building Suit — Website
 
-Production Nuxt 4 / Vue 3 / TypeScript application for the Building Suit marketing website. Currently ships one page: the bilingual (English/Arabic) "Coming Soon" landing page.
+Production Nuxt 4 / Vue 3 / TypeScript application for the Building Suit marketing website. Currently ships one page: a single-viewport, no-scroll "Coming Soon" brand experience (bilingual English/Arabic) — logo, "Coming Soon," and the brand promise "Clarity you can trust.", with a reserved (currently empty) region for future QR/store/contact actions.
 
 This repository is **not** the `tareq-abdelwhap/building-suit` design-system/product-documentation repository — it consumes canonical design tokens and copy from that repository (see `docs/building-suit-source-audit.md` for exact refs/commits) but owns its own production build, tests, and deploy story independently.
 
@@ -38,14 +38,14 @@ pnpm test:e2e          # playwright — builds nothing itself, runs against `.ou
                        # webServer config, so `pnpm build` must run first
 ```
 
-`pnpm test:e2e` includes automated accessibility scans (`@axe-core/playwright`, WCAG 2 A/AA) across all four locale×theme combinations, in addition to functional/keyboard/SSR/reduced-motion coverage.
+`pnpm test:e2e` includes automated accessibility scans (`@axe-core/playwright`, WCAG 2 A/AA) in English and Arabic, a dedicated no-scroll regression suite (`tests/e2e/no-scroll.spec.ts`) across 13 viewports × 2 reading directions, and reduced-motion coverage — in addition to functional/keyboard/SSR checks.
 
 ## Evidence and reference docs
 
 - `docs/building-suit-source-audit.md` — exact source refs/commit SHAs and authority resolution used for this build.
 - `docs/motion-mcp-audit.md` — Motion tooling audit, including the API surface actually verified against the installed `motion-v` package.
 - `docs/visual-qa.md` — design/composition/copy/motion/accessibility review, Lighthouse results, and known remaining issues.
-- `test-results/visual-evidence/` — fixed-viewport screenshots across locale, theme, device, and reduced-motion.
+- `test-results/visual-evidence/` — fixed-viewport screenshots across device size, locale, and reduced-motion.
 
 Regenerate evidence after a change:
 
@@ -59,17 +59,28 @@ node scripts/capture-visual-evidence.mjs
 
 ```text
 app/
-  pages/index.vue                Coming Soon page (SEO meta, structured data)
-  components/landing/            Header, hero, architectural signal, pillars, closing, footer
-  components/controls/           Language and appearance (theme) controls
-  composables/                   useAppearance (SSR-safe theme), useLandingLocale (SSR-safe locale)
-  content/landingCopy.ts         Approved EN/AR copy
-  utils/buildingSuitMotion.ts    Central motion contract (durations, easings, reveal helpers)
-  utils/icons.ts                 Central Hugeicons registry
-  plugins/hugeicons.ts           Global <HugeiconsIcon> registration
-  assets/css/                    Generated tokens, reset, base, landing layout primitives
-design-system/                   Vendored canonical tokens + provenance
-scripts/                         Token sync/verify, OG/logo asset generation, evidence capture
-tests/                           Vitest unit tests + Playwright e2e/accessibility suite
-docs/                            Source audit, motion audit, visual QA
+  pages/index.vue                       Coming Soon page (SEO meta, structured data)
+  components/landing/
+    ComingSoonExperience.vue            Root composition: dvh/svh sizing, safe-area insets, layout bias
+    ArchitecturalAtmosphere.vue         Decorative background: charcoal/navy field, window-grid, gold halo, pointer parallax
+    BrandIdentity.vue                   Logo + wordmark + "Coming Soon" (h1) + brand promise
+    FutureActionsSlot.vue               Reserved, currently-empty region for a future QR/links
+  components/controls/                  Language + appearance controls — preserved infrastructure,
+                                         not rendered on this page (no visible chrome, task requirement)
+  composables/
+    useAppearance.ts                    SSR-safe theme (dormant on this page — see docs/visual-qa.md)
+    useLandingLocale.ts                 SSR-safe locale/dir
+    useSafeReducedMotion.ts             Hydration-safe wrapper around motion-v's useReducedMotion()
+  content/landingCopy.ts                Minimal EN/AR copy (brand name, status, promise only)
+  utils/buildingSuitMotion.ts           Central motion contract (durations, easings, phase-based reveal helpers)
+  utils/icons.ts                        Central Hugeicons registry (controls only; this page renders no icons)
+  plugins/hugeicons.ts                  Global <HugeiconsIcon> registration
+  assets/css/                           Generated tokens, reset, base, page-shell rules
+design-system/                          Vendored canonical tokens + provenance
+scripts/                                Token sync/verify, OG/logo/favicon generation, evidence capture
+tests/
+  e2e/landing.spec.ts                   Accessibility, SSR, keyboard, reduced motion, landmarks
+  e2e/no-scroll.spec.ts                 Hard no-scroll regression across 13 viewports × 2 directions
+  *.spec.ts                             Vitest unit tests (motion contract, copy content)
+docs/                                   Source audit, motion audit, visual QA
 ```

@@ -76,3 +76,19 @@ Both are 920×1245 PNG, RGBA, byte-identical to the source repository (verified 
 ## Note on the target repository itself
 
 `tareq-abdelwhap/building-suit-website` was created empty specifically for this task after two earlier attempts were blocked by GitHub App permissions (no repo-creation rights in the `Building-Suit` org, then none on the personal account either). The user created the repo manually; this session attached it read/write and cloned it. No relationship to `tareq-abdelwhap/building-suit-old` or any other existing repository.
+
+## Addendum — single-viewport "Futuristic Zero-Scroll" rebuild
+
+A second implementation pass rebuilt the page as a single-viewport, no-scroll brand experience (logo + "Coming Soon" + "Clarity you can trust.", reserved future-actions space), replacing the earlier multi-section header/hero/pillars/closing/footer layout. This addendum records what changed for *that* pass; everything above (refs, SHAs, authority resolution, logo provenance) was re-verified, not superseded.
+
+**Re-verification performed:** `git fetch --all --prune` was re-run against the source repository. Every SHA in the table above was re-checked and is **byte-identical** to the original audit — no branch moved, and no new branch superseding `codex/remove-prototype` or `codex/business-strengthening-checkpoint-07` was found in `origin`. The authority split (design system from `remove-prototype`, product/motion from `checkpoint-07`) stands unchanged.
+
+**Additional design-system files read for this pass** (all from `remove-prototype`, not read in the first pass): `02-logo-system/01_LOGO_ANALYSIS.md`, `02-logo-system/05_APP_ICON_GUIDE.md`, `01-strategy/04_TARGET_AUDIENCE.md`, and the "Splash screen" / "3D vs flat usage" / "Do / Don't" sections of `08-final-guidelines/02_BRAND_GUIDELINES_FULL_DOCUMENT.md` (grepped for `splash`, `coming soon`, `no.scroll` rather than read end-to-end — the other individual visual-identity/UI-system docs already covered its content).
+
+**What those files changed about the implementation:**
+- `01_LOGO_ANALYSIS.md` explicitly extends the logo's 3D "premium material and lighting" direction to "hero renders and marketing imagery" and names the window grid as the brand's second-strongest visual equity after the mark itself — directly informing the architectural-atmosphere background (§ below) rather than a generic gradient.
+- `05_APP_ICON_GUIDE.md` and the full document's "Splash screen" section both independently specify: solid navy/navy-gradient background, centered light/silver logo with generous clear space, no busy pattern behind the mark, and "keep animation subtle and non-blocking; a short fade is sufficient." This is a close analogue to a splash screen and was used as direct precedent for the Coming Soon composition and entrance motion.
+- The full document states plainly: **"Do not place a busy pattern behind the mark."** The first draft of the architectural background violated this (the window-grid mask was concentrated directly behind the logo); it was corrected to fade the grid *away* from the brand cluster and stay strongest at the edges — see `docs/visual-qa.md` for the before/after.
+- `04_TARGET_AUDIENCE.md` did not change any visual decision but confirmed the "calm, trustworthy, not hyped" tone bar the minimal copy needed to clear.
+
+**No new contradiction found.** The re-verification did not surface any conflict beyond the two already recorded above.

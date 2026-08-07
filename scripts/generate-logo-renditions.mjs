@@ -15,11 +15,12 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const BRAND_DIR = join(ROOT, "public/brand");
 
 // height in px @1x; each is exported at 1x and 2x. Chosen from actual max display
-// heights used in the components: header/footer need <=40px, the hero architectural
-// signal needs <=128px.
+// heights used in the components: header/footer need <=40px, the archived hero panel
+// used <=128px, the Coming Soon brand cluster scales up to ~200px on large desktops.
 const SIZES = [
   { suffix: "sm", height: 48 }, // header (40px) + footer (32px), @1x covers both with margin
-  { suffix: "md", height: 128 }, // architectural signal
+  { suffix: "md", height: 128 }, // legacy hero panel size, kept for any future reuse
+  { suffix: "lg", height: 240 }, // ComingSoonExperience brand logo, @2x covers up to 480px display
 ];
 
 async function renderVariant(variant) {

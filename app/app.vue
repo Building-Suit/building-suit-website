@@ -8,10 +8,15 @@ useHead({
     dir,
     // Explicit light/dark choices are known at SSR time and can render correctly on
     // first paint; "system" is resolved client-side by the blocking script in
-    // nuxt.config.ts (see composables/useAppearance.ts for the shared contract).
+    // nuxt.config.ts (see composables/useAppearance.ts for the shared contract). Kept
+    // for future pages — the Coming Soon experience itself always renders the fixed dark
+    // architectural treatment regardless of this value (see ComingSoonExperience.vue).
     "data-theme": computed(() => (theme.value === "system" ? undefined : resolvedTheme.value)),
   },
-  meta: [{ name: "theme-color", content: computed(() => (resolvedTheme.value === "dark" ? "#0E1114" : "#16293B")) }],
+  // #0E1114 mirrors --bs-color-role-dark-background (Neutral 950) — the browser chrome
+  // theme-color meta tag can't consume a CSS custom property, so this one value is a
+  // deliberate, unavoidable exception to "no raw hex in components."
+  meta: [{ name: "theme-color", content: "#0E1114" }],
 });
 </script>
 
