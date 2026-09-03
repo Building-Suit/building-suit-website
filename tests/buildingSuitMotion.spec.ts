@@ -6,7 +6,10 @@ import {
   environmentReveal,
   logoReveal,
   parallaxMaxPx,
+  platformReveal,
+  railFirstOrder,
   revealStep,
+  ruleReveal,
   stagger,
   textReveal,
 } from "../app/utils/buildingSuitMotion";
@@ -62,8 +65,35 @@ describe("buildingSuitMotion", () => {
     expect(capped).toBe(textReveal(stagger.maxItems - 1, false).transition.delay);
   });
 
+  it("rule reveal (Phase 3b) draws outward with scaleX and settles fully open", () => {
+    const step = ruleReveal(false);
+    expect(step.initial).toEqual({ opacity: 0, scaleX: 0 });
+    expect(step.animate).toEqual({ opacity: 1, scaleX: 1 });
+    expect(step.transition.ease).toEqual(easing.enter);
+    expect(step.transition.duration).toBeLessThanOrEqual(duration.extended);
+  });
+
+  it("platform reveal (Phase 4) starts after the brand text stack and shares one delay", () => {
+    expect(railFirstOrder).toBeGreaterThan(textReveal(2, false).transition.delay / stagger.stepSeconds);
+    const first = platformReveal(0, false).transition.delay;
+    const later = platformReveal(7, false).transition.delay;
+    expect(first).toBeGreaterThanOrEqual(textReveal(2, false).transition.delay);
+    // Past the accumulated-stagger cap, an N-item rail must not turn into an N-step
+    // cascade — every card lands together.
+    expect(later).toBe(first);
+    expect(first).toBeLessThanOrEqual(stagger.maxItems * stagger.stepSeconds + 0.001);
+  });
+
   it("every phase renders immediately (initial: false, instant transition) under reduced motion", () => {
-    for (const step of [environmentReveal(true), logoReveal(true), textReveal(0, true), textReveal(3, true)]) {
+    for (const step of [
+      environmentReveal(true),
+      logoReveal(true),
+      textReveal(0, true),
+      textReveal(3, true),
+      ruleReveal(true),
+      platformReveal(0, true),
+      platformReveal(5, true),
+    ]) {
       expect(step.initial).toBe(false);
       expect(step.transition.duration).toBe(duration.instant);
       expect(step.animate.opacity).toBe(1);
