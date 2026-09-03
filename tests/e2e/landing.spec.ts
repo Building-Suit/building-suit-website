@@ -26,6 +26,10 @@ test.describe("server rendering", () => {
     expect(html).toContain("Building Suit");
     expect(html).toContain("Coming Soon");
     expect(html).toContain("Clarity you can trust.");
+    // The platforms rail is server-rendered too — it must not be a client-only hydration
+    // artefact, or it is invisible to crawlers and to no-JS visitors.
+    expect(html).toContain("More from Building Suit.");
+    expect(html).toContain("Ledger Suit");
   });
 
   test("Arabic renders server-side via the bs-lang cookie", async ({ request }) => {
@@ -38,36 +42,66 @@ test.describe("server rendering", () => {
     expect(html).toContain("وضوح تثق به.");
   });
 
-  test("no dead #-only links; the only link on the page is the skip link", async ({ page }) => {
+  test("no dead #-only links; the skip link plus real platform links, nothing else", async ({ page }) => {
     await page.goto("/");
     expect(await page.locator('a[href="#"]').count()).toBe(0);
+
     const links = page.locator("a");
-    await expect(links).toHaveCount(1);
     await expect(links.first()).toHaveAttribute("href", "#main-content");
+
+    const platformLinks = page.locator(".bs-platform");
+    await expect(platformLinks).not.toHaveCount(0);
+    await expect(links).toHaveCount((await platformLinks.count()) + 1);
   });
 
-  test("the future actions slot exists, is empty, and carries no placeholder copy", async ({ page }) => {
+  test("every platform link is absolute https and opens safely in a new tab", async ({ page }) => {
     await page.goto("/");
-    const slot = page.locator('[data-testid="future-actions-slot"]');
-    await expect(slot).toBeAttached();
-    expect((await slot.textContent())?.trim()).toBe("");
+    const links = page.locator(".bs-platform");
+    for (let i = 0; i < (await links.count()); i += 1) {
+      const link = links.nth(i);
+      const href = await link.getAttribute("href");
+      expect(href, "platform href").toMatch(/^https:\/\//);
+      await expect(link).toHaveAttribute("target", "_blank");
+      // reverse-tabnabbing: the opened page must not get a live window.opener handle.
+      expect(await link.getAttribute("rel")).toContain("noopener");
+    }
+  });
+
+  test("the platforms rail is labelled by its own heading and announces the new tab", async ({ page }) => {
+    await page.goto("/");
+    const rail = page.locator('[data-testid="platforms-rail"]');
+    await expect(rail).toBeVisible();
+    await expect(rail).toHaveAttribute("aria-labelledby", "bs-rail-title");
+    await expect(page.locator("#bs-rail-title")).toHaveText("More from Building Suit.");
+    await expect(page.locator(".bs-platform .bs-visually-hidden").first()).toHaveText("(opens in a new tab)");
   });
 });
 
 test.describe("keyboard and focus", () => {
-  test("the skip link is the only focusable element and receives visible focus", async ({ page }) => {
+  test("tab order is skip link then the platform links, each with a visible focus ring", async ({ page }) => {
     await page.goto("/");
+
     await page.keyboard.press("Tab");
     await expect(page.locator(".bs-skip-link")).toBeFocused();
-    const outline = await page.evaluate(() => getComputedStyle(document.activeElement as Element).outlineStyle);
-    expect(outline).not.toBe("none");
+    expect(await page.evaluate(() => getComputedStyle(document.activeElement as Element).outlineStyle)).not.toBe("none");
 
-    // Nothing else on the page is focusable — tabbing again wraps out (to <body> in this
-    // headless harness, to browser chrome in a real browser). Either way, no second
-    // in-page element should receive focus.
+    const platformCount = await page.locator(".bs-platform").count();
+    for (let i = 0; i < platformCount; i += 1) {
+      await page.keyboard.press("Tab");
+      await expect(page.locator(".bs-platform").nth(i)).toBeFocused();
+      const ring = await page.evaluate(() => {
+        const style = getComputedStyle(document.activeElement as Element);
+        return { style: style.outlineStyle, width: style.outlineWidth };
+      });
+      expect(ring.style).not.toBe("none");
+      expect(Number.parseFloat(ring.width)).toBeGreaterThan(0);
+    }
+
+    // Nothing beyond the rail is focusable — tabbing again wraps out (to <body> in this
+    // headless harness, to browser chrome in a real browser).
     await page.keyboard.press("Tab");
-    const secondFocusTag = await page.evaluate(() => document.activeElement?.tagName);
-    expect(secondFocusTag === "BODY" || secondFocusTag === undefined).toBe(true);
+    const trailingFocusTag = await page.evaluate(() => document.activeElement?.tagName);
+    expect(trailingFocusTag === "BODY" || trailingFocusTag === undefined).toBe(true);
   });
 
   test("no automatic focus movement on page load", async ({ page }) => {
@@ -81,8 +115,19 @@ test.describe("reduced motion", () => {
   test("every entrance element is immediately visible under prefers-reduced-motion: reduce", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
-    for (const selector of [".bs-atmosphere", ".bs-brand__logo-frame", ".bs-brand__wordmark", ".bs-brand__status", ".bs-brand__promise"]) {
-      await expect(page.locator(selector), `${selector} should be visible without motion`).toHaveCSS("opacity", "1");
+    const selectors = [
+      ".bs-atmosphere",
+      ".bs-brand__logo-frame",
+      ".bs-brand__wordmark",
+      ".bs-brand__status",
+      ".bs-brand__promise",
+      ".bs-experience__rule",
+      ".bs-rail__title",
+      ".bs-rail__subtitle",
+      ".bs-rail__item",
+    ];
+    for (const selector of selectors) {
+      await expect(page.locator(selector).first(), `${selector} should be visible without motion`).toHaveCSS("opacity", "1");
     }
   });
 
@@ -109,20 +154,72 @@ test.describe("console and landmarks", () => {
     });
 
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    // Replace the cookie rather than layering a second value over it. `useCookie` writes
+    // its resolved default back to document.cookie after the first load, and a live page
+    // holding that write-back watcher can clobber an externally-set value in the window
+    // between the reload request and hydration — the server then renders one locale while
+    // the client reads the other. That is a harness artefact of mutating cookies from
+    // outside the page, not something a visitor can hit, but it made this test fail
+    // roughly a third of the time.
+    await context.clearCookies({ name: "bs-lang" });
     await context.addCookies([{ name: "bs-lang", value: "ar", url: "http://localhost:3412" }]);
     await page.reload();
+    await page.waitForLoadState("networkidle");
 
+    // Assert the switch actually took effect, so this can never pass by quietly staying
+    // in English and therefore never exercising the locale change at all.
+    await expect(page.locator("h1")).toHaveText("قريبًا");
     expect(errors).toEqual([]);
   });
 
-  test("exactly one h1, one main landmark, no header/footer chrome", async ({ page }) => {
+  // Regression: `useCookie`'s `default` only fills a *missing* cookie. An unrecognised
+  // value passed straight through, `landingCopy[value]` came back undefined, and the next
+  // property read crashed the page. A stale or hand-edited cookie must degrade to English.
+  test("an unrecognised bs-lang cookie falls back to English instead of crashing", async ({ page, context }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (err) => errors.push(String(err)));
+    page.on("console", (msg) => {
+      if (msg.type() === "error") errors.push(msg.text());
+    });
+
+    await context.addCookies([{ name: "bs-lang", value: "fr", url: "http://localhost:3412" }]);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.locator("h1")).toHaveText("Coming Soon");
+    await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+    expect(errors).toEqual([]);
+  });
+
+  test("exactly one h1, one h2 under it, one main landmark, no header/footer chrome", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(page.locator("h1")).toHaveText("Coming Soon");
+    // The rail heading is an h2, not a second h1 — heading order must not skip a level.
+    await expect(page.locator("h2")).toHaveCount(1);
+    await expect(page.locator("h3")).toHaveCount(0);
     await expect(page.locator("main#main-content")).toHaveCount(1);
     await expect(page.locator("header")).toHaveCount(0);
     await expect(page.locator("footer")).toHaveCount(0);
     await expect(page.locator("nav")).toHaveCount(0);
+  });
+
+  // Regression: the divider first shipped as a static in-flow element and was painted
+  // underneath the absolutely-positioned atmosphere layer — laid out, opacity 1, and
+  // completely invisible. Opacity assertions cannot catch that; stacking has to be
+  // asserted directly.
+  test("every foreground element stacks above the decorative atmosphere", async ({ page }) => {
+    await page.goto("/");
+    for (const selector of [".bs-brand", ".bs-rail", ".bs-experience__rule"]) {
+      const stacking = await page.locator(selector).first().evaluate((el) => {
+        const style = getComputedStyle(el);
+        return { position: style.position, zIndex: style.zIndex };
+      });
+      expect(stacking.position, `${selector} position`).not.toBe("static");
+      expect(Number(stacking.zIndex), `${selector} z-index`).toBeGreaterThan(0);
+    }
   });
 
   test("decorative atmosphere is hidden from the accessibility tree", async ({ page }) => {

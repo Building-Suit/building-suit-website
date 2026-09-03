@@ -52,21 +52,25 @@ const promise = computed(() => textReveal(2, reducedMotion.value));
   margin-block-end: clamp(0.25rem, 1dvh, 0.75rem);
 }
 
+/* Ceilings on the logo and the status headline are lower than the pre-rail composition
+   (168px / 6.5rem). The page still has to fit one viewport, and the space that buys goes
+   to the platforms rail — an oversized headline with nothing under it was the old
+   composition's answer to an empty lower half that no longer exists. */
 .bs-brand__logo {
-  height: clamp(56px, 8dvh + 3.5vw, 168px);
+  height: clamp(52px, 7dvh + 3vw, 140px);
   width: auto;
 }
 
 .bs-brand__wordmark {
   color: var(--bs-color-brand-context-on-surface-muted);
-  font-size: clamp(0.85rem, 0.5vw + 1.3dvh, 1.15rem);
+  font-size: clamp(0.8rem, 0.45vw + 1.15dvh, 1.05rem);
   font-weight: var(--bs-typography-font-weight-semibold);
   letter-spacing: 0.02em;
 }
 
 .bs-brand__status {
   color: var(--bs-color-brand-context-on-surface);
-  font-size: clamp(2.5rem, 4vw + 5dvh, 6.5rem);
+  font-size: clamp(2.25rem, 3.4vw + 4.2dvh, 5rem);
   line-height: calc(1.05 * var(--bs-lh-scale));
   font-weight: var(--bs-typography-font-weight-extrabold);
   letter-spacing: -0.01em;
@@ -74,7 +78,7 @@ const promise = computed(() => textReveal(2, reducedMotion.value));
 
 .bs-brand__promise {
   color: var(--bs-color-brand-context-on-surface-muted);
-  font-size: clamp(1rem, 0.6vw + 1.8dvh, 1.5rem);
+  font-size: clamp(0.95rem, 0.5vw + 1.5dvh, 1.35rem);
   font-weight: var(--bs-typography-font-weight-medium);
 }
 

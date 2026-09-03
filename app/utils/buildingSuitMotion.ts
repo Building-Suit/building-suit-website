@@ -87,14 +87,48 @@ export function textReveal(index: number, reducedMotion: boolean) {
   return revealStep(index + 1, { reducedMotion, travel: distance.microPx + 2 });
 }
 
-// Hover / press — reserved for whatever gets added to FutureActionsSlot later.
-// Motion Spec §7.1.
+// Phase 3b — the gold hairline separating the brand promise from the platforms rail.
+// A rule has no meaningful "from" position to travel from, so it draws itself outward
+// from the centre (scaleX) instead. `extended` because a line that draws slower than the
+// text it separates reads as deliberate rather than as a fourth staggered text item.
+export interface RuleRevealStep {
+  initial: false | { opacity: number; scaleX: number };
+  animate: { opacity: number; scaleX: number };
+  transition: { duration: number; ease: readonly number[]; delay: number };
+}
+
+export function ruleReveal(reducedMotion: boolean): RuleRevealStep {
+  const settled = { opacity: 1, scaleX: 1 };
+  if (reducedMotion) {
+    return { initial: false, animate: settled, transition: { duration: duration.instant, ease: easing.standard, delay: 0 } };
+  }
+  return {
+    initial: { opacity: 0, scaleX: 0 },
+    animate: settled,
+    transition: { duration: duration.extended, ease: easing.enter, delay: stagger.maxItems * stagger.stepSeconds },
+  };
+}
+
+// Phase 4 — the other-platforms rail. Continues the same stagger sequence after the brand
+// text stack (which occupies orders 1-3), so the rail reads as the last beat of one
+// entrance rather than as a second, separate animation. Orders at or past
+// `stagger.maxItems` all share one delay by design (§3.4's 80ms accumulated cap) — a rail
+// of N platforms resolves as a single group, not as an ever-lengthening cascade.
+export const railFirstOrder = 4;
+
+export function platformReveal(index: number, reducedMotion: boolean) {
+  return revealStep(railFirstOrder + index, { reducedMotion, travel: distance.microPx + 2 });
+}
+
+// Hover / press — consumed by the platform cards in PlatformsRail.vue, which bind these
+// through CSS custom properties so the contract stays the single source of truth even
+// where the interaction itself is expressed in CSS. Motion Spec §7.1.
 export const hoverScale = 1.015;
 export const pressScale = 0.98;
 export const hoverTransition = { duration: duration.micro, ease: easing.standard };
 
 // Section 18 — optional pointer parallax on desktop pointer-fine devices only. Travel
-// is deliberately tiny (3-10px) and never applied to the logo, text, or the future
-// actions slot. Smoothed with a spring so it reads as "gently responds," not tracked 1:1.
+// is deliberately tiny (3-10px) and never applied to the logo, text, or the platforms
+// rail. Smoothed with a spring so it reads as "gently responds," not tracked 1:1.
 export const parallaxMaxPx = 8;
 export const parallaxSpring = { stiffness: 40, damping: 18, mass: 0.6 };

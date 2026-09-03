@@ -1,6 +1,8 @@
 # Building Suit — Website
 
-Production Nuxt 4 / Vue 3 / TypeScript application for the Building Suit marketing website. Currently ships one page: a single-viewport, no-scroll "Coming Soon" brand experience (bilingual English/Arabic) — logo, "Coming Soon," and the brand promise "Clarity you can trust.", with a reserved (currently empty) region for future QR/store/contact actions.
+Production Nuxt 4 / Vue 3 / TypeScript application for the Building Suit marketing website. Currently ships one page: a single-viewport, no-scroll "Coming Soon" brand experience (bilingual English/Arabic) in two registers — the brand cluster (logo, "Coming Soon," and the brand promise "Clarity you can trust.") above a gold hairline, and below it a rail linking the other live Building Suit platforms.
+
+The whole page still fits one viewport at every supported size; the platforms rail replaced the reserved-but-empty actions region rather than adding a second screen.
 
 This repository is **not** the `tareq-abdelwhap/building-suit` design-system/product-documentation repository — it consumes canonical design tokens and copy from that repository (see `docs/building-suit-source-audit.md` for exact refs/commits) but owns its own production build, tests, and deploy story independently.
 
@@ -61,17 +63,20 @@ node scripts/capture-visual-evidence.mjs
 app/
   pages/index.vue                       Coming Soon page (SEO meta, structured data)
   components/landing/
-    ComingSoonExperience.vue            Root composition: dvh/svh sizing, safe-area insets, layout bias
+    ComingSoonExperience.vue            Root composition: dvh/svh sizing, safe-area insets, flexible
+                                         spacers, and the gold hairline dividing the two registers
     ArchitecturalAtmosphere.vue         Decorative background: charcoal/navy field, window-grid, gold halo, pointer parallax
     BrandIdentity.vue                   Logo + wordmark + "Coming Soon" (h1) + brand promise
-    FutureActionsSlot.vue               Reserved, currently-empty region for a future QR/links
+    PlatformsRail.vue                   "More from Building Suit." (h2) + one link card per platform
   components/controls/                  Language + appearance controls — preserved infrastructure,
                                          not rendered on this page (no visible chrome, task requirement)
   composables/
     useAppearance.ts                    SSR-safe theme (dormant on this page — see docs/visual-qa.md)
     useLandingLocale.ts                 SSR-safe locale/dir
     useSafeReducedMotion.ts             Hydration-safe wrapper around motion-v's useReducedMotion()
-  content/landingCopy.ts                Minimal EN/AR copy (brand name, status, promise only)
+  content/landingCopy.ts                Minimal EN/AR copy (brand name, status, promise, rail labels)
+  content/platforms.ts                  The other Building Suit platforms shown in the rail —
+                                         publicly-reachable products only, see the file header
   utils/buildingSuitMotion.ts           Central motion contract (durations, easings, phase-based reveal helpers)
   utils/icons.ts                        Central Hugeicons registry (controls only; this page renders no icons)
   plugins/hugeicons.ts                  Global <HugeiconsIcon> registration
@@ -81,6 +86,6 @@ scripts/                                Token sync/verify, OG/logo/favicon gener
 tests/
   e2e/landing.spec.ts                   Accessibility, SSR, keyboard, reduced motion, landmarks
   e2e/no-scroll.spec.ts                 Hard no-scroll regression across 13 viewports × 2 directions
-  *.spec.ts                             Vitest unit tests (motion contract, copy content)
+  *.spec.ts                             Vitest unit tests (motion contract, copy content, platform data)
 docs/                                   Source audit, motion audit, visual QA
 ```
