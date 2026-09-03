@@ -82,7 +82,14 @@ At every size the logo stays intact and legible, "Coming Soon" stays dominant (w
 
 ## Fixed during this pass
 
+- **An unrecognised or mid-session-deleted `bs-lang` cookie crashed the page.** `useCookie`'s `default` only fills a *missing* cookie at read time; it does not sanitise a present-but-unrecognised value, and on the client the ref drops to null/undefined the moment the cookie is deleted (privacy extension, manual clear, an expiry landing between two renders). `landingCopy[locale.value]` then returned `undefined` and the next property read — `copy.skipToContent` in `app.vue` — threw `TypeError: Cannot read properties of undefined (reading 'skipToContent')`, taking the whole page down. `useLandingLocale` now narrows the raw cookie through a computed before anything reads it, and an e2e test loads the page with `bs-lang=fr` to prove it degrades to English. This was pre-existing, not introduced by this change; it surfaced while chasing the flake below.
 - **The gold hairline was laid out, opacity 1, and completely invisible.** It shipped as a static in-flow child of `.bs-experience`, and `ArchitecturalAtmosphere` is an absolutely-positioned sibling, so the divider painted underneath it. Every other foreground child already carried `position: relative; z-index: 1`; the divider did not. Caught by reading a cropped screenshot at full resolution, *not* by the test suite — the reduced-motion opacity assertions passed the whole time. `tests/e2e/landing.spec.ts` now asserts stacking directly for all three foreground elements.
+
+## Known, understood, and deliberately not fixed
+
+- **`useCookie` writes its resolved default back to `document.cookie` after the first load, and that write-back can clobber a value set from outside the page.** Measured, not assumed: the "load, switch locale, reload" e2e test failed 2/15 runs on `main` and 5/15 on this branch (more `<Motion>` nodes widen the window; the mismatch itself is locale-driven, not motion-driven — reproducing under `prefers-reduced-motion: reduce` gives the same rate, and never switching locale gives 0/15). The server then renders one locale while the client reads the other, and Vue logs `Hydration completed but contains mismatches.`
+
+  A visitor cannot hit this by switching language in the page, since `setLocale` writes through the same ref. The reachable version is two tabs open at once, where the stale tab's write-back reverts a switch made in the other — minor, and fixing it properly means taking over cookie writes from Nuxt (`watch: false` plus a manual writer), which is out of scope for a landing-page change and touches the language control that this page does not render. The test now replaces the cookie instead of layering over it, which is both deterministic (0/20) and closer to what a real visit does.
 
 ## Unresolved issues
 

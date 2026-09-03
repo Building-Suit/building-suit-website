@@ -154,9 +154,42 @@ test.describe("console and landmarks", () => {
     });
 
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    // Replace the cookie rather than layering a second value over it. `useCookie` writes
+    // its resolved default back to document.cookie after the first load, and a live page
+    // holding that write-back watcher can clobber an externally-set value in the window
+    // between the reload request and hydration — the server then renders one locale while
+    // the client reads the other. That is a harness artefact of mutating cookies from
+    // outside the page, not something a visitor can hit, but it made this test fail
+    // roughly a third of the time.
+    await context.clearCookies({ name: "bs-lang" });
     await context.addCookies([{ name: "bs-lang", value: "ar", url: "http://localhost:3412" }]);
     await page.reload();
+    await page.waitForLoadState("networkidle");
 
+    // Assert the switch actually took effect, so this can never pass by quietly staying
+    // in English and therefore never exercising the locale change at all.
+    await expect(page.locator("h1")).toHaveText("قريبًا");
+    expect(errors).toEqual([]);
+  });
+
+  // Regression: `useCookie`'s `default` only fills a *missing* cookie. An unrecognised
+  // value passed straight through, `landingCopy[value]` came back undefined, and the next
+  // property read crashed the page. A stale or hand-edited cookie must degrade to English.
+  test("an unrecognised bs-lang cookie falls back to English instead of crashing", async ({ page, context }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (err) => errors.push(String(err)));
+    page.on("console", (msg) => {
+      if (msg.type() === "error") errors.push(msg.text());
+    });
+
+    await context.addCookies([{ name: "bs-lang", value: "fr", url: "http://localhost:3412" }]);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.locator("h1")).toHaveText("Coming Soon");
+    await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
     expect(errors).toEqual([]);
   });
 
