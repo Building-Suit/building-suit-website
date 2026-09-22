@@ -1,12 +1,7 @@
-/* Base document + typography defaults. Locale-aware font family and Arabic line-height
-   multiplier (canonical 1.12, see design-tokens.json typography.locale). */
-
+/* Shared document and typography defaults. Public landing geometry remains in the
+   landing components; admin-specific styling lives in admin.css. */
 :root {
   --bs-lh-scale: var(--bs-typography-locale-latin-line-height-multiplier);
-  color-scheme: light;
-}
-
-:root[data-theme="dark"] {
   color-scheme: dark;
 }
 
@@ -35,7 +30,6 @@ h3 {
   letter-spacing: 0;
 }
 
-/* Arabic never inherits Latin letter-spacing or uppercase transforms. */
 html[lang="ar"] * {
   text-transform: none;
   letter-spacing: 0;
@@ -54,14 +48,13 @@ button,
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
+textarea:focus-visible,
 [tabindex]:focus-visible {
   outline: var(--bs-size-focus-ring) solid var(--bs-focus-ring);
   outline-offset: var(--bs-size-focus-offset);
   border-radius: var(--bs-radius-chip);
 }
 
-/* Screen-reader-only text. Not `display: none` / `visibility: hidden` — both remove the
-   node from the accessibility tree, which is the opposite of the point. */
 .bs-visually-hidden {
   position: absolute;
   width: 1px;
@@ -69,6 +62,7 @@ input:focus-visible,
   margin: -1px;
   padding: 0;
   overflow: hidden;
+  clip: rect(0, 0, 0, 0);
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
@@ -91,18 +85,6 @@ input:focus-visible,
 
 .bs-skip-link:focus-visible {
   transform: translateY(0);
-}
-
-.bs-visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,49 +1,38 @@
 <script setup lang="ts">
-import { environmentReveal, parallaxMaxPx, parallaxSpring } from "~/utils/buildingSuitMotion";
+import { environmentReveal, parallaxMaxPx, parallaxSpring } from '~/utils/buildingSuitMotion'
 
-const reducedMotion = useSafeReducedMotion();
-const reveal = computed(() => environmentReveal(reducedMotion.value));
+const reducedMotion = useSafeReducedMotion()
+const reveal = computed(() => environmentReveal(reducedMotion.value))
 
-// Section 18 — subtle pointer parallax, desktop pointer-fine only, never on brand
-// content. Two independent spring-smoothed motion values drive small opposite-direction
-// offsets on the structural planes and the gold light, so the scene reads as responding
-// to the room rather than tracking the cursor.
-//
-// Each parallaxed layer is split into a static wrapper (handles fixed position/size and
-// any static CSS transform — perspective, rotate, centering translate) and an inner
-// <Motion> element that only ever receives the x/y motion values. Motion takes full
-// ownership of `transform` on whatever element `:style="{ x, y }"` is bound to — a
-// static `transform` in the same element's stylesheet rule is silently dropped, not
-// merged. Splitting the two avoids that conflict rather than fighting it.
-const pointerX = useMotionValue(0);
-const pointerY = useMotionValue(0);
-const springX = useSpring(pointerX, parallaxSpring);
-const springY = useSpring(pointerY, parallaxSpring);
+const pointerX = useMotionValue(0)
+const pointerY = useMotionValue(0)
+const springX = useSpring(pointerX, parallaxSpring)
+const springY = useSpring(pointerY, parallaxSpring)
 
-const planeOffsetX = useTransform(springX, [-1, 1], [-parallaxMaxPx, parallaxMaxPx]);
-const planeOffsetY = useTransform(springY, [-1, 1], [-parallaxMaxPx / 2, parallaxMaxPx / 2]);
-const glowOffsetX = useTransform(springX, [-1, 1], [parallaxMaxPx / 2, -parallaxMaxPx / 2]);
-const glowOffsetY = useTransform(springY, [-1, 1], [parallaxMaxPx / 3, -parallaxMaxPx / 3]);
+const planeOffsetX = useTransform(springX, [-1, 1], [-parallaxMaxPx, parallaxMaxPx])
+const planeOffsetY = useTransform(springY, [-1, 1], [-parallaxMaxPx / 2, parallaxMaxPx / 2])
+const glowOffsetX = useTransform(springX, [-1, 1], [parallaxMaxPx / 2, -parallaxMaxPx / 2])
+const glowOffsetY = useTransform(springY, [-1, 1], [parallaxMaxPx / 3, -parallaxMaxPx / 3])
 
-let cleanup: (() => void) | null = null;
+let cleanup: (() => void) | null = null
 
 onMounted(() => {
-  if (!import.meta.client) return;
-  const pointerFine = window.matchMedia("(pointer: fine)").matches;
-  if (!pointerFine || reducedMotion.value) return;
+  if (!import.meta.client) return
+  const pointerFine = window.matchMedia('(pointer: fine)').matches
+  if (!pointerFine || reducedMotion.value) return
 
   function onPointerMove(event: PointerEvent) {
-    const nx = (event.clientX / window.innerWidth) * 2 - 1;
-    const ny = (event.clientY / window.innerHeight) * 2 - 1;
-    pointerX.set(nx);
-    pointerY.set(ny);
+    const nx = (event.clientX / window.innerWidth) * 2 - 1
+    const ny = (event.clientY / window.innerHeight) * 2 - 1
+    pointerX.set(nx)
+    pointerY.set(ny)
   }
 
-  window.addEventListener("pointermove", onPointerMove, { passive: true });
-  cleanup = () => window.removeEventListener("pointermove", onPointerMove);
-});
+  window.addEventListener('pointermove', onPointerMove, { passive: true })
+  cleanup = () => window.removeEventListener('pointermove', onPointerMove)
+})
 
-onUnmounted(() => cleanup?.());
+onUnmounted(() => cleanup?.())
 </script>
 
 <template>
@@ -95,7 +84,6 @@ onUnmounted(() => cleanup?.());
   background: linear-gradient(180deg, var(--bs-color-neutral-900) 0%, var(--bs-color-role-dark-background) 60%);
 }
 
-/* One controlled Building Navy architectural presence, not a wash across the whole page. */
 .bs-atmosphere__navy-field {
   position: absolute;
   inset: -10%;
@@ -107,9 +95,6 @@ onUnmounted(() => cleanup?.());
   position: absolute;
   inset: -20%;
   transform-origin: center;
-  /* Inverted on purpose: quiet/transparent where the logo sits, stronger toward the
-     edges. "Do not place a busy pattern behind the mark" (08-final-guidelines) — the
-     brand cluster's safe area must stay a calm, low-detail region. */
   mask-image: radial-gradient(38% 34% at 50% 33%, transparent 0%, black 78%, black 100%);
   -webkit-mask-image: radial-gradient(38% 34% at 50% 33%, transparent 0%, black 78%, black 100%);
 }
@@ -141,13 +126,6 @@ onUnmounted(() => cleanup?.());
   opacity: 0.18;
 }
 
-/* Large abstract structural planes — suggest façade mass without illustrating a building.
-   Sharp-edged (matches the logo's rectilinear façade geometry) rather than card-radius.
-   Physical left/right on purpose, not inset-inline-*: this is purely physical
-   architectural geometry, not reading-direction content, so it deliberately does not
-   mirror under RTL (task rule: "purely physical/architectural geometry does not have to
-   mirror") — and it keeps the layer direction-agnostic, avoiding the class of bug where
-   a logical-property anchor and a physical transform disagree under dir="rtl". */
 .bs-atmosphere__plane {
   position: absolute;
   border: 1px solid var(--bs-color-brand-context-boundary);
@@ -173,9 +151,6 @@ onUnmounted(() => cleanup?.());
   opacity: 0.28;
 }
 
-/* Environmental halo behind the logo — "one inhabited window," isolating the mark rather
-   than a generic gold gradient. Centered on the brand cluster, not free-floating. Physical
-   `left` (not inset-inline-start) — see note above the structural planes. */
 .bs-atmosphere__glow-wrap {
   position: absolute;
   width: min(30vmin, 300px);

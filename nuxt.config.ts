@@ -1,41 +1,56 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
+import tailwindcss from '@tailwindcss/vite'
+
 export default defineNuxtConfig({
-  compatibilityDate: "2026-08-01",
+  compatibilityDate: '2026-08-30',
   future: { compatibilityVersion: 4 },
-  devtools: { enabled: false },
-  modules: ["motion-v/nuxt", "@nuxt/eslint"],
+  devtools: { enabled: true },
   ssr: true,
 
-  typescript: {
-    strict: true,
-    typeCheck: false,
+  modules: [
+    'motion-v/nuxt',
+    '@nuxt/eslint',
+    '@nuxtjs/supabase',
+    '@primevue/nuxt-module',
+  ],
+
+  vite: {
+    plugins: [tailwindcss()],
   },
 
   css: [
-    "@fontsource-variable/manrope/index.css",
-    "@fontsource/ibm-plex-sans-arabic/400.css",
-    "@fontsource/ibm-plex-sans-arabic/500.css",
-    "@fontsource/ibm-plex-sans-arabic/600.css",
-    "@fontsource/ibm-plex-sans-arabic/700.css",
-    "~/assets/css/building-suit-tokens.css",
-    "~/assets/css/reset.css",
-    "~/assets/css/base.css",
-    "~/assets/css/landing.css",
+    '@fontsource-variable/manrope/index.css',
+    '@fontsource/ibm-plex-sans-arabic/400.css',
+    '@fontsource/ibm-plex-sans-arabic/500.css',
+    '@fontsource/ibm-plex-sans-arabic/600.css',
+    '@fontsource/ibm-plex-sans-arabic/700.css',
+    '~/assets/css/tailwind.css',
+    '~/assets/css/building-suit-runtime-tokens.css',
+    '~/assets/css/reset.css',
+    '~/assets/css/base.css',
+    '~/assets/css/landing.css',
+    '~/assets/css/admin.css',
   ],
+
+  supabase: {
+    cookiePrefix: 'bs-website-auth-token',
+    redirect: false,
+  },
+
+  primevue: {
+    options: { unstyled: true },
+    components: {
+      include: ['Button', 'InputText', 'Textarea', 'ToggleSwitch', 'ProgressBar'],
+    },
+  },
+
+  typescript: {
+    strict: true,
+  },
 
   app: {
     head: {
-      htmlAttrs: { lang: "en", dir: "ltr" },
-      link: [{ rel: "icon", type: "image/png", href: "/brand/favicon.png" }],
-      script: [
-        {
-          key: "bs-theme-init",
-          tagPosition: "head",
-          // Blocking, synchronous, runs before first paint to avoid a light/dark flash.
-          // Kept in lockstep with composables/useAppearance.ts (cookie name + resolution rule).
-          innerHTML: `(function(){try{var m=document.cookie.match(/(?:^|; )bs-theme=([^;]*)/);var v=m?decodeURIComponent(m[1]):'system';var resolved=v==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):v;document.documentElement.setAttribute('data-theme',resolved);document.documentElement.style.colorScheme=resolved;}catch(e){}})();`,
-        },
-      ],
+      link: [{ rel: 'icon', type: 'image/png', href: '/brand/favicon.png' }],
+      meta: [{ name: 'theme-color', content: '#0B0B0D' }],
     },
   },
-});
+})

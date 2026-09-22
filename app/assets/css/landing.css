@@ -1,10 +1,8 @@
-/* Coming Soon page shell rules. Component-specific rules live in each component's
-   scoped <style> block; this file only holds true cross-page backstops. */
-
+/* The original page's viewport control is now scoped to DynamicLanding so dynamic cover
+   images or larger project lists can scroll without changing the default one-screen look. */
 html,
 body {
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
 }
 
 body {

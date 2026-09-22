@@ -1,29 +1,43 @@
-import { landingCopy } from "~/content/landingCopy";
+import type { LandingLocale } from '~/types/content'
 
-export type LandingLocale = "en" | "ar";
+const legacyCopy = {
+  en: {
+    brandName: 'Building Suit',
+    status: 'Coming Soon',
+    promise: 'Clarity you can trust.',
+    logoAlt: 'Building Suit',
+    platformsTitle: 'More from Building Suit.',
+    platformsSubtitle: 'Other platforms and systems we run.',
+    newTabHint: 'opens in a new tab',
+  },
+  ar: {
+    brandName: 'Building Suit',
+    status: 'قريبًا',
+    promise: 'وضوح تثق به.',
+    logoAlt: 'Building Suit',
+    platformsTitle: 'المزيد من Building Suit',
+    platformsSubtitle: 'منصّات وأنظمة أخرى نُشغّلها.',
+    newTabHint: 'يفتح في تبويب جديد',
+  },
+} as const
 
 export function useLandingLocale() {
-  const cookie = useCookie<LandingLocale>("bs-lang", {
-    default: () => "en",
+  const cookie = useCookie<LandingLocale>('bs-lang', {
+    default: () => 'en',
     maxAge: 60 * 60 * 24 * 365,
-    sameSite: "lax",
-  });
+    sameSite: 'lax',
+  })
 
-  // `useCookie`'s `default` only fills in a *missing* cookie at read time. It does not
-  // sanitise a present-but-unrecognised value, and on the client the ref goes to
-  // null/undefined the moment the cookie is deleted mid-session (privacy extension, a
-  // manual clear, an expiry landing between two renders). Indexing landingCopy with that
-  // raw value yields `undefined`, and the very next property read — `copy.skipToContent`
-  // in app.vue — throws, taking the whole page down. Everything downstream therefore
-  // reads this narrowed ref, never the cookie ref directly.
-  const locale = computed<LandingLocale>(() => (cookie.value === "ar" ? "ar" : "en"));
+  const locale = computed<LandingLocale>(() => cookie.value === 'ar' ? 'ar' : 'en')
+  const dir = computed<'ltr' | 'rtl'>(() => locale.value === 'ar' ? 'rtl' : 'ltr')
 
-  const dir = computed<"ltr" | "rtl">(() => (locale.value === "ar" ? "rtl" : "ltr"));
-  const copy = computed(() => landingCopy[locale.value]);
+  // Compatibility for the original BrandIdentity/PlatformsRail components that remain
+  // in the repository after the dynamic page was overlaid. The active dynamic landing
+  // does not source its editable copy from here; it reads Supabase through useLandingContent().
+  const copy = computed(() => legacyCopy[locale.value])
 
-  function setLocale(value: LandingLocale) {
-    cookie.value = value;
-  }
+  const setLocale = (value: LandingLocale) => { cookie.value = value }
+  const toggleLocale = () => setLocale(locale.value === 'en' ? 'ar' : 'en')
 
-  return { locale, dir, copy, setLocale };
+  return { locale, dir, copy, setLocale, toggleLocale }
 }
