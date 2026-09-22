@@ -4,6 +4,8 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+packageExtensionsChecksum: sha256-82ulND4/dIYpnRi4Yra6PCrXyRICIwkFyLMjTYT0ObE=
+
 importers:
 
   .:
@@ -6116,6 +6118,7 @@ snapshots:
       '@supabase/ssr': 0.7.0(@supabase/supabase-js@2.117.0)
       '@supabase/supabase-js': 2.117.0
       defu: 6.1.7
+      h3: 1.15.11
       pathe: 2.0.3
     transitivePeerDependencies:
       - '@opentelemetry/api'

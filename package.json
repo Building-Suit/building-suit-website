@@ -47,6 +47,13 @@
     "onlyBuiltDependencies": [
       "esbuild",
       "unrs-resolver"
-    ]
+    ],
+    "packageExtensions": {
+      "@nuxtjs/supabase@1.6.2": {
+        "dependencies": {
+          "h3": "1.15.11"
+        }
+      }
+    }
   }
 }
