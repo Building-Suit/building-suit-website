@@ -32,7 +32,7 @@ export default defineNuxtConfig({
   ],
 
   supabase: {
-    cookiePrefix: `bs-website-${process.env.APP_ENV || 'local'}-auth-token`,
+    cookiePrefix: 'bs-website-auth-token',
     redirect: false,
   },
 

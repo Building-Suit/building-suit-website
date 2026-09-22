@@ -4,13 +4,13 @@ const { locale, dir } = useLandingLocale()
 const isAdmin = computed(() => route.path.startsWith('/admin'))
 const skipLabel = computed(() => locale.value === 'ar' ? 'تخطَّ إلى المحتوى' : 'Skip to content')
 
-useHead({
-  htmlAttrs: computed(() => ({
+useHead(() => ({
+  htmlAttrs: {
     lang: isAdmin.value ? 'en' : locale.value,
     dir: isAdmin.value ? 'ltr' : dir.value,
     'data-theme': 'dark',
-  })),
-})
+  },
+}))
 </script>
 
 <template>

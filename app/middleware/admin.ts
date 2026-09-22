@@ -1,8 +1,10 @@
+import type { Database } from '~/types/database.types'
+
 export default defineNuxtRouteMiddleware(async () => {
   const user = useSupabaseUser()
   if (!user.value) return navigateTo('/admin/login')
 
-  const supabase = useSupabaseClient()
+  const supabase = useSupabaseClient<Database>()
   const { data, error } = await supabase
     .from('admin_users')
     .select('user_id')

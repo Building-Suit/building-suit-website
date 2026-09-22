@@ -1,8 +1,9 @@
 import { fallbackProjects, fallbackSettings } from '~/utils/fallbackContent'
 import type { ProjectLink, SiteSettings } from '~/types/content'
+import type { Database } from '~/types/database.types'
 
 export function useLandingContent() {
-  const supabase = useSupabaseClient()
+  const supabase = useSupabaseClient<Database>()
 
   return useAsyncData('building-suit-landing-content', async () => {
     try {

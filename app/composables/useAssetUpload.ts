@@ -1,7 +1,9 @@
+import type { Database } from '~/types/database.types'
+
 const BUCKET = 'landing-assets'
 
 export function useAssetUpload() {
-  const supabase = useSupabaseClient()
+  const supabase = useSupabaseClient<Database>()
 
   async function uploadImage(file: File, folder: string) {
     if (!file.type.startsWith('image/')) throw new Error('Please choose an image file.')

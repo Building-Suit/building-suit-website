@@ -1,5 +1,6 @@
 <script setup lang="ts">
-const supabase = useSupabaseClient()
+import type { Database } from '~/types/database.types'
+const supabase = useSupabaseClient<Database>()
 const user = useSupabaseUser()
 const route = useRoute()
 const email = ref('')

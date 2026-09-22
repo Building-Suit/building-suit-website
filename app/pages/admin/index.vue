@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { toRaw } from 'vue'
 import type { ProjectLink, SiteSettings } from '~/types/content'
+import type { Database, TablesInsert, TablesUpdate } from '~/types/database.types'
 import { fallbackSettings } from '~/utils/fallbackContent'
 
 definePageMeta({ middleware: 'admin' })
 useSeoMeta({ title: 'Building Suit — Website Admin', robots: 'noindex, nofollow' })
 
-const supabase = useSupabaseClient()
+const supabase = useSupabaseClient<Database>()
 const { removeAssets } = useAssetUpload()
 const settings = reactive<SiteSettings>({ ...fallbackSettings })
 const originalSettings = ref<SiteSettings>({ ...fallbackSettings })
@@ -73,7 +74,7 @@ async function saveSettings() {
   const previous = snapshot(originalSettings.value)
 
   try {
-    const { error } = await supabase.from('site_settings').update({
+    const payload: TablesUpdate<'site_settings'> = {
       background_image_url: settings.background_image_url,
       background_image_path: settings.background_image_path,
       background_overlay_enabled: settings.background_overlay_enabled,
@@ -91,7 +92,9 @@ async function saveSettings() {
       projects_title_ar: settings.projects_title_ar,
       projects_helper_text_en: settings.projects_helper_text_en || null,
       projects_helper_text_ar: settings.projects_helper_text_ar || null,
-    }).eq('id', 'homepage')
+    }
+
+    const { error } = await supabase.from('site_settings').update(payload).eq('id', 'homepage')
 
     if (error) throw error
 
@@ -143,7 +146,7 @@ async function saveProject(project: ProjectLink) {
   errorMessage.value = ''
 
   try {
-    const payload = {
+    const payload: TablesInsert<'project_links'> = {
       title_en: project.title_en,
       title_ar: project.title_ar || null,
       description_en: project.description_en || null,
