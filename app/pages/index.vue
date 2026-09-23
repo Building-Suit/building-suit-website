@@ -5,18 +5,18 @@ const settings = computed(() => data.value!.settings)
 const projects = computed(() => data.value!.projects)
 
 const requestUrl = useRequestURL()
-const canonicalUrl = computed(() => \`\${requestUrl.protocol}//\${requestUrl.host}/\`)
+const canonicalUrl = computed(() => requestUrl.protocol + '//' + requestUrl.host + '/')
 const localizedTitle = computed(() => locale.value === 'ar' ? settings.value.coming_soon_text_ar : settings.value.coming_soon_text_en)
 const localizedDescription = computed(() => locale.value === 'ar' ? settings.value.helper_text_ar : settings.value.helper_text_en)
 
 useSeoMeta({
-  title: () => \`Building Suit — \${localizedTitle.value}\`,
+  title: () => 'Building Suit — ' + localizedTitle.value,
   description: () => localizedDescription.value || 'Building Suit',
-  ogTitle: () => \`Building Suit — \${localizedTitle.value}\`,
+  ogTitle: () => 'Building Suit — ' + localizedTitle.value,
   ogDescription: () => localizedDescription.value || 'Building Suit',
   ogType: 'website',
   ogUrl: () => canonicalUrl.value,
-  ogImage: () => settings.value.cover_image_url || settings.value.logo_url || \`\${requestUrl.protocol}//\${requestUrl.host}/brand/building-suit-logo-light-lg.png\`,
+  ogImage: () => settings.value.cover_image_url || settings.value.logo_url || requestUrl.protocol + '//' + requestUrl.host + '/brand/building-suit-logo-light-lg.png',
   twitterCard: 'summary_large_image',
 })
 

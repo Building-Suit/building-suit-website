@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Captures visual evidence for the scroll-driven GSAP public landing.
 // The app must already be running at BASE_URL (defaults to Playwright preview port).
+// Set PLAYWRIGHT_CHROMIUM_PATH only when you intentionally want to use a system browser.
 
 import { chromium } from "@playwright/test";
 import { mkdirSync } from "node:fs";
@@ -12,6 +13,7 @@ const OUT_DIR = join(ROOT, "test-results/visual-evidence");
 mkdirSync(OUT_DIR, { recursive: true });
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3412";
+const chromiumExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
 
 async function capture(browser, name, { viewport, lang, reducedMotion }) {
   const context = await browser.newContext({
@@ -59,7 +61,9 @@ async function capture(browser, name, { viewport, lang, reducedMotion }) {
 }
 
 async function main() {
-  const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+  const browser = await chromium.launch(
+    chromiumExecutablePath ? { executablePath: chromiumExecutablePath } : {}
+  );
 
   await capture(browser, "mobile-390x844", { viewport: { width: 390, height: 844 } });
   await capture(browser, "desktop-1440x900", { viewport: { width: 1440, height: 900 } });
