@@ -1,9 +1,11 @@
 export type AppearanceMode = "light" | "dark" | "system";
 export type ResolvedAppearance = "light" | "dark";
 
-// SSR-safe theme composable. Cookie name and resolution rule ("system" -> matchMedia)
-// must stay in lockstep with the blocking pre-paint script in nuxt.config.ts.
-export function useAppearance() {
+interface AppearanceOptions {
+  syncDocument?: boolean;
+}
+
+export function useAppearance(options: AppearanceOptions = {}) {
   const theme = useCookie<AppearanceMode>("bs-theme", {
     default: () => "system",
     maxAge: 60 * 60 * 24 * 365,
@@ -16,21 +18,34 @@ export function useAppearance() {
     theme.value === "system" ? (systemPrefersDark.value ? "dark" : "light") : theme.value
   );
 
-  function applyToDocument(value: ResolvedAppearance) {
+  const syncDocument = options.syncDocument ?? true;
+  let mediaQuery: MediaQueryList | undefined;
+  let stopThemeWatch: (() => void) | undefined;
+
+  const applyToDocument = (value: ResolvedAppearance) => {
     if (!import.meta.client) return;
     document.documentElement.setAttribute("data-theme", value);
     document.documentElement.style.colorScheme = value;
-  }
+  };
 
-  if (import.meta.client) {
-    const mql = window.matchMedia("(prefers-color-scheme: dark)");
-    systemPrefersDark.value = mql.matches;
-    mql.addEventListener("change", (event) => {
-      systemPrefersDark.value = event.matches;
-    });
+  const handleSystemChange = (event: MediaQueryListEvent) => {
+    systemPrefersDark.value = event.matches;
+  };
 
-    watch(resolvedTheme, applyToDocument, { immediate: true });
-  }
+  onMounted(() => {
+    mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    systemPrefersDark.value = mediaQuery.matches;
+    mediaQuery.addEventListener("change", handleSystemChange);
+
+    if (syncDocument) {
+      stopThemeWatch = watch(resolvedTheme, applyToDocument, { immediate: true });
+    }
+  });
+
+  onBeforeUnmount(() => {
+    stopThemeWatch?.();
+    mediaQuery?.removeEventListener("change", handleSystemChange);
+  });
 
   function setTheme(value: AppearanceMode) {
     theme.value = value;
