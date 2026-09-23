@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-test.describe("public GSAP landing", () => {
+test.describe("single-screen GSAP landing", () => {
   for (const lang of ["en", "ar"]) {
     test("no WCAG A/AA violations — " + lang, async ({ page, context }) => {
       await context.addCookies([{ name: "bs-lang", value: lang, url: "http://localhost:3412" }]);
@@ -33,17 +33,13 @@ test.describe("public GSAP landing", () => {
     expect(html).toContain("وضوح تثق به.");
   });
 
-  test("project links are safe absolute HTTPS links", async ({ page }) => {
+  test("project link is safe and absolute", async ({ page }) => {
     await page.goto("/");
-    const links = page.locator(".bs-gsap-project-card");
-    await expect(links.first()).toBeVisible();
-
-    for (let i = 0; i < (await links.count()); i += 1) {
-      const link = links.nth(i);
-      expect(await link.getAttribute("href")).toMatch(/^https:\/\//);
-      await expect(link).toHaveAttribute("target", "_blank");
-      expect(await link.getAttribute("rel")).toContain("noopener");
-    }
+    const link = page.locator(".bs-gsap-project-card");
+    await expect(link).toHaveCount(1);
+    expect(await link.getAttribute("href")).toMatch(/^https:\/\//);
+    await expect(link).toHaveAttribute("target", "_blank");
+    expect(await link.getAttribute("rel")).toContain("noopener");
   });
 
   test("language control switches the live page to Arabic", async ({ page }) => {
@@ -57,11 +53,9 @@ test.describe("public GSAP landing", () => {
   test("appearance control cycles system, dark, light", async ({ page, context }) => {
     await context.addCookies([{ name: "bs-theme", value: "system", url: "http://localhost:3412" }]);
     await page.goto("/");
-
     const control = page.getByTestId("appearance-control");
     await control.click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-
     await control.click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   });
@@ -77,32 +71,20 @@ test.describe("public GSAP landing", () => {
     await page.goto("/");
     await expect(page.locator("header.bs-gsap-header")).toHaveCount(1);
     await expect(page.locator("main#main-content")).toHaveCount(1);
-    await expect(page.locator("footer.bs-gsap-footer")).toHaveCount(1);
+    await expect(page.locator("footer")).toHaveCount(0);
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(page.locator("h2")).toHaveCount(1);
   });
 
-  test("GSAP progress responds to scroll", async ({ page }) => {
-    await page.goto("/");
-    await page.waitForTimeout(350);
-    const bar = page.locator("[data-gsap-progress]");
-    const before = await bar.evaluate((el) => getComputedStyle(el).transform);
-    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    await page.waitForTimeout(250);
-    const after = await bar.evaluate((el) => getComputedStyle(el).transform);
-    expect(after).not.toBe(before);
-  });
-
-  test("reduced motion keeps content immediately visible", async ({ page }) => {
+  test("reduced motion keeps the composition stable", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
     await expect(page.locator("h1")).toBeVisible();
-    await expect(page.locator(".bs-gsap-project-card").first()).toBeVisible();
-
-    const orbit = page.locator("[data-gsap-orbit-a]");
-    const before = await orbit.evaluate((el) => getComputedStyle(el).transform);
+    await expect(page.locator(".bs-gsap-project-card")).toBeVisible();
+    const ring = page.locator('[data-gsap="ring-a"]');
+    const before = await ring.evaluate((el) => getComputedStyle(el).transform);
     await page.waitForTimeout(250);
-    const after = await orbit.evaluate((el) => getComputedStyle(el).transform);
+    const after = await ring.evaluate((el) => getComputedStyle(el).transform);
     expect(after).toBe(before);
   });
 

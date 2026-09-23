@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-// Captures visual evidence for the scroll-driven GSAP public landing.
-// The app must already be running at BASE_URL (defaults to Playwright preview port).
-// Set PLAYWRIGHT_CHROMIUM_PATH only when you intentionally want to use a system browser.
+// Captures fixed-viewport visual evidence for the single-screen GSAP public landing.
+// Set PLAYWRIGHT_CHROMIUM_PATH only when intentionally using a system Chromium.
 
 import { chromium } from "@playwright/test";
 import { mkdirSync } from "node:fs";
@@ -34,7 +33,7 @@ async function capture(browser, name, { viewport, lang, reducedMotion }) {
   });
 
   await page.goto(BASE_URL, { waitUntil: "networkidle" });
-  await page.waitForTimeout(reducedMotion ? 150 : 650);
+  await page.waitForTimeout(reducedMotion ? 120 : 700);
 
   const metrics = await page.evaluate(() => ({
     scrollHeight: document.documentElement.scrollHeight,
@@ -43,16 +42,16 @@ async function capture(browser, name, { viewport, lang, reducedMotion }) {
     clientWidth: document.documentElement.clientWidth,
   }));
 
-  const horizontalOverflow = metrics.scrollWidth > metrics.clientWidth + 2;
-  const missingScrollStory = metrics.scrollHeight <= metrics.clientHeight;
+  const overflow =
+    metrics.scrollHeight > metrics.clientHeight + 2 ||
+    metrics.scrollWidth > metrics.clientWidth + 2;
 
-  await page.screenshot({ path: join(OUT_DIR, name + ".png"), fullPage: true });
+  await page.screenshot({ path: join(OUT_DIR, name + ".png") });
   await context.close();
 
-  if (errors.length || horizontalOverflow || missingScrollStory) {
+  if (errors.length || overflow) {
     console.error("✗ " + name + ": errors=" + JSON.stringify(errors) +
-      " horizontalOverflow=" + horizontalOverflow +
-      " missingScrollStory=" + missingScrollStory +
+      " overflow=" + overflow +
       " metrics=" + JSON.stringify(metrics));
     process.exitCode = 1;
   } else {
@@ -65,12 +64,12 @@ async function main() {
     chromiumExecutablePath ? { executablePath: chromiumExecutablePath } : {}
   );
 
+  await capture(browser, "mobile-360x640", { viewport: { width: 360, height: 640 } });
   await capture(browser, "mobile-390x844", { viewport: { width: 390, height: 844 } });
+  await capture(browser, "desktop-1366x768", { viewport: { width: 1366, height: 768 } });
   await capture(browser, "desktop-1440x900", { viewport: { width: 1440, height: 900 } });
-  await capture(browser, "desktop-1920x1080", { viewport: { width: 1920, height: 1080 } });
   await capture(browser, "ultrawide-3440x1440", { viewport: { width: 3440, height: 1440 } });
   await capture(browser, "reduced-motion-390x844", { viewport: { width: 390, height: 844 }, reducedMotion: true });
-  await capture(browser, "reduced-motion-1440x900", { viewport: { width: 1440, height: 900 }, reducedMotion: true });
   await capture(browser, "ar-mobile-390x844", { viewport: { width: 390, height: 844 }, lang: "ar" });
   await capture(browser, "ar-desktop-1440x900", { viewport: { width: 1440, height: 900 }, lang: "ar" });
 
