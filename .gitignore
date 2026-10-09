@@ -6,3 +6,9 @@ node_modules
 !.env.example
 .DS_Store
 *.log
+
+# Generated browser verification output (keep tracked visual-evidence assets).
+/test-results/artifacts/
+/test-results/html-report/
+/test-results/sales-program/
+/test-results/.last-run.json

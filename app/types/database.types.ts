@@ -36,6 +36,8 @@ export interface Database {
           logo_path: string | null
           cover_image_url: string | null
           cover_image_path: string | null
+          sales_program?: Json
+          social_links?: Json
           coming_soon_text_en: string
           coming_soon_text_ar: string
           helper_text_en: string | null
@@ -57,6 +59,8 @@ export interface Database {
           logo_path?: string | null
           cover_image_url?: string | null
           cover_image_path?: string | null
+          sales_program?: Json
+          social_links?: Json
           coming_soon_text_en?: string
           coming_soon_text_ar?: string
           helper_text_en?: string | null
@@ -78,6 +82,8 @@ export interface Database {
           logo_path?: string | null
           cover_image_url?: string | null
           cover_image_path?: string | null
+          sales_program?: Json
+          social_links?: Json
           coming_soon_text_en?: string
           coming_soon_text_ar?: string
           helper_text_en?: string | null

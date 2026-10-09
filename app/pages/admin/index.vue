@@ -297,6 +297,12 @@ async function moveProject(index: number, delta: number) {
   refreshPreview()
 }
 
+function onContentSaved(saved: SiteSettings) {
+  Object.assign(settings, saved)
+  originalSettings.value = snapshot(settings)
+  refreshPreview()
+}
+
 async function logout() {
   await supabase.auth.signOut()
   await navigateTo('/admin/login')
@@ -342,6 +348,8 @@ async function logout() {
             <span>{{ visibleProjects }} project{{ visibleProjects === 1 ? '' : 's' }} published</span>
           </div>
         </section>
+
+        <AdminWebsiteContentControls :settings="settings" @saved="onContentSaved" />
 
         <div class="bs-admin-workspace">
           <div class="bs-admin-controls">
