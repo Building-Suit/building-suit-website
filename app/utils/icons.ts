@@ -6,9 +6,10 @@
 // These remain for AppearanceControl/LanguageControl, which are preserved as
 // not-currently-rendered infrastructure — see FutureActionsSlot.vue.
 
-import { ComputerIcon, LanguageSquareIcon, Moon02Icon, Sun01Icon } from "@hugeicons/core-free-icons";
+import { ComputerIcon, LanguageSquareIcon, Moon02Icon, Sun01Icon, LinkedinIcon, InstagramIcon, FacebookIcon, MessengerIcon, TiktokIcon, NewTwitterIcon, WhatsappIcon } from "@hugeicons/core-free-icons";
 
 export const icons = {
+  LinkedIn: LinkedinIcon, Instagram: InstagramIcon, Facebook: FacebookIcon, Messenger: MessengerIcon, TikTok: TiktokIcon, X: NewTwitterIcon, WhatsApp: WhatsappIcon,
   language: LanguageSquareIcon,
   themeLight: Sun01Icon,
   themeDark: Moon02Icon,

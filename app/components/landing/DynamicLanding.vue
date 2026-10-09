@@ -36,6 +36,8 @@ const needsScroll = computed(() => hasCover.value || props.projects.length > 4)
 
     <LandingProjectRail :projects="projects" :settings="settings" :locale="locale" />
 
+    <LandingCommunityLinks :settings="settings" />
+
     <div class="bs-experience__spacer bs-experience__spacer--bottom" aria-hidden="true" />
   </div>
 </template>

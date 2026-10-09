@@ -42,7 +42,7 @@ test.describe("server rendering", () => {
     expect(html).toContain("وضوح تثق به.");
   });
 
-  test("no dead #-only links; the skip link plus real platform links, nothing else", async ({ page }) => {
+  test("no dead #-only links; the skip link, platform links and sales CTA", async ({ page }) => {
     await page.goto("/");
     expect(await page.locator('a[href="#"]').count()).toBe(0);
 
@@ -51,7 +51,9 @@ test.describe("server rendering", () => {
 
     const platformLinks = page.locator(".bs-platform");
     await expect(platformLinks).not.toHaveCount(0);
-    await expect(links).toHaveCount((await platformLinks.count()) + 1);
+    const socialCount = await page.locator(".bs-social-links a").count();
+    await expect(page.locator(".bs-join-link")).toHaveAttribute("href", "/sales-program");
+    await expect(links).toHaveCount((await platformLinks.count()) + socialCount + 2);
   });
 
   test("every platform link is absolute https and opens safely in a new tab", async ({ page }) => {

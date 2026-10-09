@@ -9,7 +9,7 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:3412",
     trace: "retain-on-failure",
-    launchOptions: { executablePath: "/opt/pw-browsers/chromium" },
+    launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
